@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US Treasury Auction Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+<style>
+:root{
+  --bg:#080c18;--panel:#0f1624;--panel2:#141d2e;--border:#1c2a44;
+  --accent:#00d4f5;--gold:#f5a623;--green:#1de9b6;--red:#ff3d6e;--violet:#a78bfa;--pink:#fb7185;
+  --text:#dde4f0;--muted:#6f84a6;
+  --bill:#00d4f5;--note:#a78bfa;--bond:#f5a623;
+}
+[data-theme="light"]{
+  --bg:#f0f4f8;--panel:#ffffff;--panel2:#f8fafc;--border:#cbd5e1;
+  --accent:#0284c7;--gold:#b45309;--green:#047857;--red:#e11d48;--violet:#7c3aed;--pink:#be185d;
+  --text:#0f172a;--muted:#5b6b82;
+  --bill:#0284c7;--note:#7c3aed;--bond:#b45309;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",system-ui,sans-serif;min-height:100vh;font-size:14px;line-height:1.5}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.hidden{display:none!important}
+
+/* theme switch */
+.theme-btn{background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:5px 12px;font-size:12px;color:var(--muted)}
+.theme-btn:hover{color:var(--text);border-color:var(--accent)}
+
+/* start screen */
+#start{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;position:relative;
+  background:radial-gradient(ellipse 80% 60% at 50% 35%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 70%)}
+#start .theme-btn{position:absolute;top:20px;right:24px}
+.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+#start h1{font-size:clamp(26px,5vw,42px);font-weight:700;letter-spacing:-.03em;text-align:center;line-height:1.15;margin:10px 0}
+#start p.sub{color:var(--muted);text-align:center;max-width:460px;margin-bottom:32px}
+.fetch-box{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;display:grid;gap:12px}
+.fetch-row{display:flex;align-items:center;gap:12px}
+.fetch-row label{width:36px;color:var(--muted);font-size:12px}
+input[type=date]{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color-scheme:dark}
+[data-theme="light"] input[type=date]{color-scheme:light}
+input[type=date]:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:transparent;border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--muted)}
+.chip:hover{color:var(--text);border-color:var(--muted)}
+.chip.on{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent);color:var(--accent);font-weight:600}
+.btn-primary{background:var(--accent);color:#04121a;border:0;border-radius:10px;padding:11px;font-weight:700}
+[data-theme="light"] .btn-primary{color:#fff}
+.btn-primary:disabled{opacity:.5;cursor:wait}
+.btn-ghost{background:transparent;border:1px solid var(--border);border-radius:10px;padding:9px;color:var(--muted)}
+.progress{height:4px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.progress>div{height:100%;width:0;background:var(--accent);transition:width .25s}
+.status{font-size:12px;color:var(--muted);min-height:18px;text-align:center}
+.status.err{color:var(--red)}
+.hint{margin-top:18px;font-size:12px;color:var(--muted);text-align:center;line-height:1.8}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+
+/* dashboard shell */
+#dash{max-width:1500px;margin:0 auto;padding:20px 20px 60px}
+.tabbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:22px;padding-bottom:10px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{background:transparent;border:0;border-radius:8px;padding:8px 14px;color:var(--muted);font-weight:600}
+.tab:hover{color:var(--text);background:var(--panel)}
+.tab.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.head h2{font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:-.02em}
+.head .desc{color:var(--muted);font-size:13px}
+.badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;border:1px solid}
+.badge.red{color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent)}
+.badge.gold{color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent)}
+.terms{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+.kpi .l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-size:26px;font-weight:600;margin:2px 0;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;min-width:0}
+.panel.wide{grid-column:1/-1}
+.panel h3{font-size:15px;font-weight:700}
+.panel .pd{font-size:12px;color:var(--muted);margin-bottom:10px}
+.cw{position:relative;height:280px}.cw.tall{height:340px}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+
+.guide{margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
+.guide h3{font-size:14px;margin-bottom:8px}
+.guide ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:6px 20px;font-size:13px;color:var(--muted)}
+.guide b{color:var(--text)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.src{margin-top:10px;font-size:11px;color:var(--muted)}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+
+/* toolbar rows */
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tools input[type=date]{flex:0 1 150px;padding:6px 8px;font-size:13px}
+.btn-sm{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+
+/* calendar */
+.cal-nav{display:flex;align-items:center;gap:10px}
+.cal-nav .m{font-size:18px;font-weight:700;min-width:130px;text-align:center}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.dow{font-size:11px;color:var(--muted);text-align:center;padding:4px 0;letter-spacing:.08em}
+.day{min-height:92px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:6px 8px;text-align:left;display:flex;flex-direction:column;gap:3px;color:var(--text)}
+.day.blank{background:transparent;border-color:transparent}
+.day.has{cursor:pointer}.day.has:hover{border-color:var(--accent)}
+.day.today .n{color:var(--accent);font-weight:700}
+.day .n{font-size:12px;color:var(--muted)}
+.day .amt{font-size:13px;font-weight:600}
+.day .bb{font-size:11px;color:var(--green)}
+.day .up{font-size:11px;color:var(--gold)}
+.bar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:auto;gap:1px}
+.bar i{display:block;height:100%}
+@media(max-width:640px){.day{min-height:64px;padding:4px}.day .amt{font-size:11px}.day .bb,.day .up{font-size:10px}}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(2,6,16,.65);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:560px;max-height:86vh;overflow:auto;position:relative}
+.modal .x{position:absolute;top:10px;right:12px;background:none;border:0;font-size:18px;color:var(--muted)}
+.modal h3{font-size:17px;margin-bottom:2px}
+.modal h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
+.modal table{width:100%;border-collapse:collapse;font-size:13px}
+.modal td,.modal th{padding:6px 4px;border-bottom:1px solid var(--border);text-align:right}
+.modal th{font-size:11px;color:var(--muted);font-weight:600}
+.modal td:first-child,.modal th:first-child{text-align:left}
+.modal .tot{display:flex;justify-content:space-between;margin-top:12px;font-weight:700}
+footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-items:center;justify-content:center;background:var(--panel);border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- 시작 화면 -->
+<section id="start">
+  <button class="theme-btn" data-theme-toggle></button>
+  <div class="eyebrow">US Treasury · Fiscal Data</div>
+  <h1>US Treasury Auction<br>Dashboard</h1>
+  <p class="sub">기간을 선택하면 미 재무부 경매 데이터를 자동으로 불러옵니다.</p>
+  <div class="fetch-box">
+    <div class="quick" id="quick">
+      <button class="chip" data-m="3">3개월</button>
+      <button class="chip" data-m="6">6개월</button>
+      <button class="chip on" data-m="12">1년</button>
+      <button class="chip" data-m="24">2년</button>
+    </div>
+    <div class="fetch-row"><label for="from">시작</label><input type="date" id="from"></div>
+    <div class="fetch-row"><label for="to">종료</label><input type="date" id="to"></div>
+    <button class="btn-primary" id="go">데이터 불러오기</button>
+    <button class="btn-ghost hidden" id="back">현재 데이터로 돌아가기</button>
+    <div class="progress"><div id="pbar"></div></div>
+    <div class="status" id="status" role="status"></div>
+  </div>
+  <div class="hint">출처: <a href="https://fiscaldata.treasury.gov" target="_blank" rel="noopener">fiscaldata.treasury.gov</a> · 경매일 기준 조회<br>기간이 길수록 여러 페이지를 순차 호출합니다 (최대 2년 권장)</div>
+</section>
+
+<!-- 대시보드 -->
+<main id="dash" class="hidden">
+  <div class="tabbar">
+    <div class="tabs" role="tablist">
+      <button class="tab" data-tab="home">홈</button>
+      <button class="tab on" data-tab="auction">입찰 분석</button>
+      <button class="tab" data-tab="buyback">바이백 분석</button>
+      <button class="tab" data-tab="calendar">결제 달력</button>
+    </div>
+    <button class="theme-btn" data-theme-toggle></button>
+  </div>
+
+  <!-- 입찰 분석 -->
+  <section id="tab-auction">
+    <div class="head">
+      <div>
+        <div class="eyebrow">Auction Demand</div>
+        <h2>US Treasury Auction Dashboard</h2>
+        <div class="desc" id="a-desc">입찰 수요 · 외국인 참여 · 테일 스프레드 종합 분석</div>
+      </div>
+      <div class="badges" id="badges"></div>
+    </div>
+    <div class="terms" id="terms"></div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">High Rate</div><div class="v" id="k-rate" style="color:var(--accent)">—</div><div class="s" id="k-rate-s"></div></div>
+      <div class="kpi"><div class="l">Bid-to-Cover</div><div class="v" id="k-btc">—</div><div class="s" id="k-btc-s"></div></div>
+      <div class="kpi"><div class="l">Indirect 비중</div><div class="v" id="k-ind" style="color:var(--accent)">—</div><div class="s">해외 중앙은행 등 간접 입찰</div></div>
+      <div class="kpi"><div class="l">Allocation %</div><div class="v" id="k-alloc" style="color:var(--violet)">—</div><div class="s">최고금리 응찰분 배정 비율</div></div>
+      <div class="kpi"><div class="l">Tail Spread</div><div class="v" id="k-tail">—</div><div class="s">High − Median Rate</div></div>
+    </div>
+    <div class="empty hidden" id="a-empty">선택한 만기에 표시할 데이터가 없습니다.</div>
+    <div id="a-charts">
+      <div class="grid">
+        <div class="panel"><h3>수요 트렌드</h3><div class="pd">Bid-to-Cover Ratio &amp; Indirect Bidder 비중</div><div class="cw"><canvas id="c-demand"></canvas></div></div>
+        <div class="panel"><h3>낙찰 열기</h3><div class="pd">Allocation % &amp; Tail Spread (bp)</div><div class="cw"><canvas id="c-heat"></canvas></div>
+          <div class="note">빨간 점 = Tail이 기간 평균 +1.5σ를 넘은 경매. 수요 약화 신호일 수 있습니다.</div></div>
+        <div class="panel wide"><h3>주체별 낙찰 비중 추이</h3><div class="pd">Primary Dealer · Direct · Indirect (경쟁입찰 낙찰액 대비, 누적) / FIMA · SOMA (총 낙찰액 대비, 우측 축)</div><div class="cw tall"><canvas id="c-bidders"></canvas></div></div>
+      </div>
+      <div class="guide">
+        <h3>해석 가이드</h3>
+        <ul>
+          <li><span class="dot" style="background:var(--accent)"></span><b>Indirect ↑</b> — 해외 중앙은행·국부펀드 등 실수요 강세</li>
+          <li><span class="dot" style="background:var(--gold)"></span><b>Primary Dealer ↑</b> — 수요가 약해 딜러가 물량을 떠안음. 유동성 경고</li>
+          <li><span class="dot" style="background:var(--red)"></span><b>Tail Spread ↑</b> — High와 Median 차이 확대. 수요 불균형</li>
+          <li><span class="dot" style="background:var(--green)"></span><b>BTC ↓</b> — 응찰 배율 감소. 수요 약화 또는 발행 규모 확대</li>
+          <li><span class="dot" style="background:var(--violet)"></span><b>FIMA ↑</b> — 외국 공공기관의 비경쟁 낙찰 증가</li>
+          <li><span class="dot" style="background:var(--pink)"></span><b>SOMA ↑</b> — 연준 계정의 만기 재투자 물량. QE/QT 사이클 반영</li>
+        </ul>
+        <div class="src" id="a-src"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 바이백 -->
+  <section id="tab-buyback" class="hidden">
+    <div class="head">
+      <div><div class="eyebrow">Buyback Operations</div><h2>Treasury Securities Buyback 분석</h2><div class="desc">재무부의 기발행 국채 환매 · 공고 대비 수요 · 유동성 흐름</div></div>
+      <div class="tools"><input type="date" id="bb-from" aria-label="바이백 시작일"><span>~</span><input type="date" id="bb-to" aria-label="바이백 종료일"><button class="btn-sm" id="bb-go">조회</button></div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">오퍼레이션 수</div><div class="v" id="b-ops" style="color:var(--accent)">—</div><div class="s" id="b-ops-s"></div></div>
+      <div class="kpi"><div class="l">총 낙찰액</div><div class="v" id="b-acc" style="color:var(--green)">—</div><div class="s">Total Par Accepted</div></div>
+      <div class="kpi"><div class="l">총 응찰액</div><div class="v" id="b-off" style="color:var(--gold)">—</div><div class="s">Total Par Offered</div></div>
+      <div class="kpi"><div class="l">평균 낙찰률</div><div class="v" id="b-fill" style="color:var(--violet)">—</div><div class="s">Accepted / Max Par</div></div>
+      <div class="kpi"><div class="l">평균 수요강도</div><div class="v" id="b-dem" style="color:var(--accent)">—</div><div class="s">Offered / Max Par</div></div>
+    </div>
+    <div class="status" id="bb-status"></div>
+    <div class="grid hidden" id="bb-charts">
+      <div class="panel"><h3>오퍼레이션별 공고 / 낙찰 금액</h3><div class="pd">Max Par Announced vs Total Par Accepted ($B)</div><div class="cw"><canvas id="c-bb-bar"></canvas></div></div>
+      <div class="panel"><h3>수요강도 &amp; 낙찰률 추이</h3><div class="pd">Offered / Max Par · Accepted / Max Par (%)</div><div class="cw"><canvas id="c-bb-ratio"></canvas></div></div>
+      <div class="panel wide"><h3>누적 바이백 금액</h3><div class="pd">오퍼레이션 날짜 기준 누적 Accepted Par ($B)</div><div class="cw tall"><canvas id="c-bb-cum"></canvas></div></div>
+    </div>
+  </section>
+
+  <!-- 결제 달력 -->
+  <section id="tab-calendar" class="hidden">
+    <div class="head">
+      <div class="cal-nav"><button class="btn-sm" id="cal-prev" aria-label="이전 달">‹</button><div class="m" id="cal-label">—</div><button class="btn-sm" id="cal-next" aria-label="다음 달">›</button></div>
+      <div class="badge gold" id="cal-total">—</div>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--bill)"></span>Bill</span>
+      <span><span class="dot" style="background:var(--note)"></span>Note</span>
+      <span><span class="dot" style="background:var(--bond)"></span>Bond</span>
+      <span style="color:var(--green)">− 바이백 결제</span>
+      <span style="color:var(--gold)">◆ 예정 경매</span>
+      <span>금액 = 발행일(결제일) 기준 총 낙찰액</span>
+    </div>
+    <div class="cal" id="cal"></div>
+
+    <div class="panel" style="margin-top:22px">
+      <div class="head" style="margin-bottom:12px">
+        <div><h3>Treasury General Account (TGA) Closing Balance</h3><div class="pd" style="margin:0">연준 내 미 재무부 현금 잔고 · Daily Treasury Statement</div></div>
+        <div class="tools">
+          <div class="quick" id="tga-quick">
+            <button class="chip" data-d="30">1개월</button><button class="chip on" data-d="90">3개월</button>
+            <button class="chip" data-d="180">6개월</button><button class="chip" data-d="365">1년</button>
+          </div>
+          <input type="date" id="tga-from" aria-label="TGA 시작일"><span>~</span><input type="date" id="tga-to" aria-label="TGA 종료일"><button class="btn-sm" id="tga-go">조회</button>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">최신 잔고</div><div class="v" id="t-last" style="color:var(--accent)">—</div><div class="s" id="t-last-s"></div></div>
+        <div class="kpi"><div class="l">기간 최고</div><div class="v" id="t-max" style="color:var(--green)">—</div><div class="s" id="t-max-s"></div></div>
+        <div class="kpi"><div class="l">기간 최저</div><div class="v" id="t-min" style="color:var(--red)">—</div><div class="s" id="t-min-s"></div></div>
+        <div class="kpi"><div class="l">기간 변화</div><div class="v" id="t-chg">—</div><div class="s">첫 영업일 대비</div></div>
+      </div>
+      <div class="status" id="tga-status"></div>
+      <div class="cw hidden" id="tga-wrap"><canvas id="c-tga"></canvas></div>
+    </div>
+  </section>
+</main>
+
+<div class="overlay hidden" id="overlay"><div class="modal" role="dialog" aria-modal="true"><button class="x" id="m-close" aria-label="닫기">✕</button><div id="m-body"></div></div></div>
+<footer>데이터: U.S. Treasury Fiscal Data API · 투자 권유가 아닌 참고용 자료입니다</footer>
+
+<script>
+"use strict";
+const API = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service";
+const $ = (id) => document.getElementById(id);
+const S = { rows: [], term: null, bb: [], upcoming: {}, calY: 0, calM: 0, range: null };
+const charts = {};
+
+/* ───── 유틸 ───── */
+const num = (s) => { if (s == null || s === "" || s === "null") return null; const n = parseFloat(String(s).replace(/,/g, "")); return isNaN(n) ? null : n; };
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad = (n) => String(n).padStart(2, "0");
+const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d; };
+const monthsAgo = (n) => { const d = new Date(); d.setMonth(d.getMonth() - n); return d; };
+const short = (s) => s.slice(2, 4) + "." + s.slice(5, 7) + "." + s.slice(8, 10);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const usd = (v) => { if (v == null) return "—"; const a = Math.abs(v), sg = v < 0 ? "−" : "";
+  if (a >= 1e12) return `${sg}$${(a / 1e12).toFixed(2)}T`; if (a >= 1e9) return `${sg}$${(a / 1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `${sg}$${(a / 1e6).toFixed(0)}M`; return `${sg}$${a.toFixed(0)}`; };
+const fx = (v, d = 2, suf = "") => (v == null ? "—" : v.toFixed(d) + suf);
+const stats = (arr) => { const v = arr.filter((x) => x != null); if (!v.length) return { mean: null, std: 0 };
+  const mean = v.reduce((a, b) => a + b, 0) / v.length; return { mean, std: Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / v.length) }; };
+const setStatus = (id, msg, err) => { const e = $(id); e.textContent = msg || ""; e.classList.toggle("err", !!err); };
+
+async function fetchPaged(path, query, size, onPage) {
+  let page = 1, total = 1, out = [];
+  while (page <= total) {
+    const res = await fetch(`${API}${path}?${query}&page[number]=${page}&page[size]=${size}`);
+    if (!res.ok) { const e = new Error("HTTP " + res.status); e.status = res.status; throw e; }
+    const j = await res.json();
+    total = (j.meta && j.meta["total-pages"]) || 1;
+    out = out.concat(j.data || []);
+    if (onPage) onPage(page, total);
+    page++;
+  }
+  return out;
+}
+
+/* ───── 테마 ───── */
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  document.querySelectorAll("[data-theme-toggle]").forEach((b) => (b.textContent = t === "dark" ? "☾ Dark" : "☀ Light"));
+  try { localStorage.setItem("tad-theme", t); } catch (e) {}
+  if (window.Chart) { Chart.defaults.color = css("--muted"); Chart.defaults.borderColor = css("--border"); }
+  if (S.rows.length) renderAuction();
+  if (S.bbOps) renderBuyback();
+  if (S.tga) renderTGA();
+}
+document.querySelectorAll("[data-theme-toggle]").forEach((b) => b.addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark")));
+
+/* ───── 만기 정규화: 리오픈(예: 9-Year 10-Month)은 원 만기(10-Year)로 묶는다 ───── */
+const STD = [2, 3, 5, 7, 10, 20, 30];
+function normTerm(r) {
+  const raw = r.security_term || "", type = r.security_type || "";
+  if (r.cash_management_bill_cmb === "Yes" || /Day/i.test(raw)) return "CMB";
+  if (type === "Bill") return raw;
+  const m = raw.match(/(\d+)-Year(?:\s+(\d+)-Month)?/);
+  if (!m) return raw;
+  const yrs = +m[1] + (m[2] ? +m[2] / 12 : 0);
+  const std = STD.find((s) => s >= yrs - 0.01) || Math.round(yrs);
+  const suf = r.inflation_index_security === "Yes" ? " TIPS" : r.floating_rate === "Yes" ? " FRN" : "";
+  return `${std}-Year${suf}`;
+}
+function termKey(t) {
+  if (t === "CMB") return 0;
+  let m = t.match(/^(\d+)-Week/); if (m) return +m[1] * 7;
+  m = t.match(/^(\d+)-Year(.*)/); if (m) return +m[1] * 365 + (m[2] ? 1 : 0);
+  return 1e6;
+}
+function mapRow(r) {
+  const total = num(r.total_accepted), ind = num(r.indirect_bidder_accepted), dir = num(r.direct_bidder_accepted), pd = num(r.primary_dealer_accepted);
+  const comp = ind != null && dir != null && pd != null ? ind + dir + pd : null;
+  const share = (a, b) => (a != null && b ? (a / b) * 100 : null);
+  const high = num(r.high_investment_rate) ?? num(r.high_discnt_rate) ?? num(r.high_yield);
+  const med = num(r.avg_med_investment_rate) ?? num(r.avg_med_discnt_rate) ?? num(r.avg_med_yield);
+  return {
+    date: (r.auction_date || "").slice(0, 10), issue: (r.issue_date || "").slice(0, 10),
+    type: r.security_type || "Bill", raw: r.security_term || "", term: normTerm(r), cusip: r.cusip || "",
+    btc: num(r.bid_to_cover_ratio), high, med, tail: high != null && med != null ? (high - med) * 100 : null,
+    alloc: num(r.allocation_pctage), total,
+    ind: share(ind, comp), dir: share(dir, comp), pd: share(pd, comp),
+    fima: share(num(r.fima_noncomp_accepted), total), soma: share(num(r.soma_accepted), total),
+  };
+}
+
+/* ───── 경매 데이터 로드 ───── */
+const CORE = "cusip,security_type,security_term,auction_date,issue_date,bid_to_cover_ratio,allocation_pctage,total_accepted,indirect_bidder_accepted,direct_bidder_accepted,primary_dealer_accepted,fima_noncomp_accepted,soma_accepted,high_investment_rate,high_discnt_rate,high_yield,avg_med_investment_rate,avg_med_discnt_rate,avg_med_yield";
+const EXTRA = ",inflation_index_security,floating_rate,cash_management_bill_cmb";
+
+async function loadAll() {
+  const from = $("from").value, to = $("to").value;
+  if (!from || !to || from > to) return setStatus("status", "시작일과 종료일을 확인해 주세요.", true);
+  $("go").disabled = true; $("pbar").style.width = "5%"; setStatus("status", "경매 데이터 불러오는 중…");
+  const q = (f) => `fields=${f}&filter=auction_date:gte:${from},auction_date:lte:${to}&sort=auction_date`;
+  const prog = (p, t) => { $("pbar").style.width = Math.round((p / t) * 100) + "%"; setStatus("status", `경매 데이터 ${p}/${t} 페이지`); };
+  try {
+    let raw;
+    try { raw = await fetchPaged("/v1/accounting/od/auctions_query", q(CORE + EXTRA), 500, prog); }
+    catch (e) { if (e.status !== 400) throw e; raw = await fetchPaged("/v1/accounting/od/auctions_query", q(CORE), 500, prog); }
+    S.rows = raw.map(mapRow).filter((r) => r.date);
+    if (!S.rows.length) throw new Error("선택한 기간에 경매 데이터가 없습니다.");
+    S.range = { from, to };
+    const done = S.rows.filter((r) => r.btc != null);
+    const terms = [...new Set(done.map((r) => r.term))].sort((a, b) => termKey(a) - termKey(b));
+    S.terms = terms;
+    S.term = terms.includes("10-Year") ? "10-Year" : terms[terms.length - 1] || null;
+    setStatus("status", `${S.rows.length}건 로드 완료`);
+    $("a-src").textContent = `데이터: U.S. Treasury Fiscal Data · auctions_query · ${from} ~ ${to} · ${S.rows.length}건`;
+    const now = new Date(); S.calY = now.getFullYear(); S.calM = now.getMonth();
+    showDash(); renderTerms(); renderAuction(); renderCalendar();
+    $("bb-from").value = from; $("bb-to").value = to;
+    loadBuyback(); loadUpcoming(); loadTGA(iso(daysAgo(90)), iso(new Date()));
+  } catch (e) {
+    const msg = e instanceof TypeError ? "API에 연결하지 못했습니다. 네트워크 상태를 확인하거나, 이 파일을 브라우저에서 직접 열어 주세요." : e.message;
+    setStatus("status", "⚠ " + msg, true); $("pbar").style.width = "0";
+  } finally { $("go").disabled = false; }
+}
+
+/* ───── 화면 전환 ───── */
+function showDash() { $("start").classList.add("hidden"); $("dash").classList.remove("hidden"); switchTab(S.tab || "auction"); }
+function switchTab(t) {
+  if (t === "home") { $("dash").classList.add("hidden"); $("start").classList.remove("hidden"); $("back").classList.toggle("hidden", !S.rows.length); window.scrollTo(0, 0); return; }
+  S.tab = t;
+  document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
+  ["auction", "buyback", "calendar"].forEach((x) => $("tab-" + x).classList.toggle("hidden", x !== t));
+  Object.values(charts).forEach((c) => c.resize());
+}
+document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+$("back").addEventListener("click", showDash);
+$("go").addEventListener("click", loadAll);
+
+/* ───── 차트 공통 ───── */
+function mk(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  const grid = { color: css("--border") };
+  cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+    plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, color: css("--text") } } } }, cfg.options);
+  const sc = cfg.options.scales || (cfg.options.scales = {});
+  sc.x = Object.assign({ grid: { display: false }, ticks: { maxTicksLimit: 10, maxRotation: 0, color: css("--muted") } }, sc.x);
+  Object.keys(sc).forEach((k) => { if (k !== "x") { sc[k].ticks = Object.assign({ color: css("--muted") }, sc[k].ticks); if (!sc[k].grid) sc[k].grid = grid; } });
+  charts[id] = new Chart($(id), cfg);
+}
+const line = (label, data, color, extra) => Object.assign({ type: "line", label, data, borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: data.length > 60 ? 0 : 2.5, pointHoverRadius: 5, tension: 0.25, spanGaps: true }, extra);
+const alpha = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+
+/* ───── 입찰 분석 ───── */
+function renderTerms() {
+  $("terms").innerHTML = S.terms.map((t) => `<button class="chip${t === S.term ? " on" : ""}" data-t="${esc(t)}">${esc(t)}</button>`).join("");
+}
+$("terms").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (!b) return; S.term = b.dataset.t; renderTerms(); renderAuction(); });
+
+function renderAuction() {
+  const items = S.rows.filter((r) => r.term === S.term && r.btc != null).sort((a, b) => a.date.localeCompare(b.date));
+  $("a-empty").classList.toggle("hidden", items.length > 0);
+  $("a-charts").classList.toggle("hidden", !items.length);
+  if (!items.length) { ["k-rate", "k-btc", "k-ind", "k-alloc", "k-tail"].forEach((k) => ($(k).textContent = "—")); $("badges").innerHTML = ""; return; }
+
+  const ts = stats(items.map((d) => d.tail)), ps = stats(items.map((d) => d.pd)), bs = stats(items.map((d) => d.btc));
+  const tailHot = (d) => d.tail != null && ts.std > 0 && d.tail > ts.mean + 1.5 * ts.std;
+  const pdHot = (d) => d.pd != null && ps.std > 0 && d.pd > ps.mean + 1.5 * ps.std;
+  const last = items[items.length - 1], prev = items[items.length - 2];
+
+  $("k-rate").textContent = fx(last.high, 3, "%");
+  $("k-rate-s").textContent = `${last.date} 경매` + (prev && prev.high != null && last.high != null ? ` · 직전 대비 ${(last.high - prev.high >= 0 ? "+" : "−") + Math.abs((last.high - prev.high) * 100).toFixed(1)}bp` : "");
+  $("k-btc").textContent = fx(last.btc, 2, "x");
+  $("k-btc").style.color = last.btc >= bs.mean ? "var(--green)" : "var(--red)";
+  $("k-btc-s").textContent = `기간 평균 ${fx(bs.mean, 2, "x")}`;
+  $("k-ind").textContent = fx(last.ind, 1, "%");
+  $("k-alloc").textContent = fx(last.alloc, 1, "%");
+  $("k-tail").textContent = fx(last.tail, 1, "bp");
+  $("k-tail").style.color = tailHot(last) ? "var(--red)" : "var(--text)";
+  $("a-desc").textContent = `${S.term} · ${items.length}회 경매 · ${items[0].date} ~ ${last.date}`;
+
+  const nT = items.filter(tailHot).length, nP = items.filter(pdHot).length;
+  $("badges").innerHTML = (nT ? `<span class="badge red">Tail 이상 확대 ${nT}회</span>` : "") + (nP ? `<span class="badge gold">Primary Dealer 비중 급증 ${nP}회</span>` : "");
+
+  const labels = items.map((d) => short(d.date));
+  const c = { accent: css("--accent"), green: css("--green"), gold: css("--gold"), red: css("--red"), violet: css("--violet"), pink: css("--pink") };
+
+  mk("c-demand", { data: { labels, datasets: [
+    line("Bid-to-Cover (x)", items.map((d) => d.btc), c.green, { yAxisID: "y" }),
+    line("Indirect (%)", items.map((d) => d.ind), c.accent, { yAxisID: "y2", borderDash: [5, 3] }) ] },
+    options: { scales: { y: { position: "left", title: { display: true, text: "BTC (x)" } }, y2: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Indirect %" } } } } });
+
+  mk("c-heat", { data: { labels, datasets: [
+    line("Tail Spread (bp)", items.map((d) => d.tail), c.gold, { yAxisID: "y2", order: 0,
+      pointRadius: items.map((d) => (tailHot(d) ? 6 : items.length > 60 ? 0 : 2.5)), pointBackgroundColor: items.map((d) => (tailHot(d) ? c.red : c.gold)), pointBorderColor: items.map((d) => (tailHot(d) ? c.red : c.gold)) }),
+    { type: "bar", label: "Allocation (%)", data: items.map((d) => d.alloc), backgroundColor: alpha(c.violet, 0.45), borderRadius: 3, yAxisID: "y", order: 1 } ] },
+    options: { scales: { y: { position: "left", beginAtZero: true, max: 100, title: { display: true, text: "Allocation %" } }, y2: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Tail (bp)" } } } } });
+
+  const area = (label, key, color) => line(label, items.map((d) => d[key]), color, { fill: true, backgroundColor: alpha(color, 0.35), pointRadius: 0, yAxisID: "y", borderWidth: 1.5 });
+  mk("c-bidders", { data: { labels, datasets: [
+    area("Primary Dealer", "pd", c.gold), area("Direct", "dir", c.green), area("Indirect", "ind", c.accent),
+    line("FIMA", items.map((d) => d.fima), c.violet, { yAxisID: "y2", borderDash: [4, 3], pointRadius: 0 }),
+    line("SOMA", items.map((d) => d.soma), c.pink, { yAxisID: "y2", borderDash: [4, 3], pointRadius: 0 }) ] },
+    options: { plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, color: css("--text") } }, tooltip: { callbacks: { label: (x) => `${x.dataset.label}: ${fx(x.parsed.y, 1, "%")}` } } },
+      scales: { y: { stacked: true, min: 0, max: 100, title: { display: true, text: "경쟁입찰 낙찰 비중 %" } }, y2: { position: "right", beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: "FIMA · SOMA %" } } } } });
+}
+
+/* ───── 바이백 ───── */
+async function loadBuyback() {
+  const from = $("bb-from").value, to = $("bb-to").value;
+  if (!from || !to || from > to) return setStatus("bb-status", "기간을 확인해 주세요.", true);
+  setStatus("bb-status", "바이백 데이터 불러오는 중…"); $("bb-go").disabled = true;
+  try {
+    S.bb = await fetchPaged("/v1/accounting/od/buybacks_operations",
+      `fields=operation_date,settlement_date,max_par_amt_redeemed,total_par_amt_accepted,total_par_amt_offered,security_type&filter=operation_date:gte:${from},operation_date:lte:${to}&sort=operation_date`, 500);
+    const map = {};
+    S.bb.forEach((r) => { const k = (r.operation_date || "").slice(0, 10); if (!k) return;
+      const o = map[k] || (map[k] = { date: k, max: 0, acc: 0, off: 0 });
+      o.max += num(r.max_par_amt_redeemed) || 0; o.acc += num(r.total_par_amt_accepted) || 0; o.off += num(r.total_par_amt_offered) || 0; });
+    S.bbOps = Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
+    renderBuyback(); renderCalendar();
+  } catch (e) { setStatus("bb-status", "⚠ 바이백 데이터를 불러오지 못했습니다 (" + e.message + ")", true); }
+  finally { $("bb-go").disabled = false; }
+}
+$("bb-go").addEventListener("click", loadBuyback);
+
+function renderBuyback() {
+  const ops = S.bbOps || [];
+  $("bb-charts").classList.toggle("hidden", !ops.length);
+  if (!ops.length) { ["b-ops", "b-acc", "b-off", "b-fill", "b-dem"].forEach((k) => ($(k).textContent = "—")); $("b-ops-s").textContent = ""; return setStatus("bb-status", "선택한 기간에 바이백 오퍼레이션이 없습니다."); }
+  setStatus("bb-status", "");
+  const v = ops.filter((o) => o.max > 0), avg = (f) => (v.length ? v.reduce((s, o) => s + f(o), 0) / v.length : null);
+  const acc = ops.reduce((s, o) => s + o.acc, 0), off = ops.reduce((s, o) => s + o.off, 0);
+  $("b-ops").textContent = ops.length; $("b-ops-s").textContent = `${ops[0].date} ~ ${ops[ops.length - 1].date}`;
+  $("b-acc").textContent = usd(acc); $("b-off").textContent = usd(off);
+  $("b-fill").textContent = fx(avg((o) => (o.acc / o.max) * 100), 1, "%");
+  $("b-dem").textContent = fx(avg((o) => o.off / o.max), 2, "x");
+  const labels = ops.map((o) => short(o.date)), B = (x) => +(x / 1e9).toFixed(3);
+  const c = { accent: css("--accent"), green: css("--green"), gold: css("--gold"), violet: css("--violet") };
+  mk("c-bb-bar", { type: "bar", data: { labels, datasets: [
+    { label: "Max Par 공고", data: ops.map((o) => B(o.max)), backgroundColor: alpha(c.gold, 0.6), borderRadius: 3 },
+    { label: "Accepted 낙찰", data: ops.map((o) => B(o.acc)), backgroundColor: alpha(c.green, 0.8), borderRadius: 3 } ] },
+    options: { scales: { y: { beginAtZero: true, title: { display: true, text: "$B" } } } } });
+  mk("c-bb-ratio", { data: { labels, datasets: [
+    line("수요강도 Offered/Max (%)", ops.map((o) => (o.max ? (o.off / o.max) * 100 : null)), c.accent),
+    line("낙찰률 Accepted/Max (%)", ops.map((o) => (o.max ? (o.acc / o.max) * 100 : null)), c.violet) ] },
+    options: { scales: { y: { beginAtZero: true, title: { display: true, text: "%" } } } } });
+  let cum = 0;
+  mk("c-bb-cum", { data: { labels, datasets: [ line("누적 Accepted ($B)", ops.map((o) => B((cum += o.acc))), c.green, { fill: true, backgroundColor: alpha(c.green, 0.15), stepped: true, pointRadius: 0 }) ] },
+    options: { scales: { y: { beginAtZero: true, title: { display: true, text: "$B" } } } } });
+}
+
+/* ───── 예정 경매 ───── */
+async function loadUpcoming() {
+  try {
+    const rows = await fetchPaged("/v1/accounting/od/upcoming_auctions", `filter=auction_date:gte:${iso(new Date())}&sort=auction_date`, 200);
+    S.upcoming = {};
+    rows.forEach((r) => { const d = (r.auction_date || "").slice(0, 10); if (!d) return;
+      (S.upcoming[d] || (S.upcoming[d] = [])).push({ term: r.security_term || "—", type: r.security_type || "", amt: num(r.offering_amt), issue: (r.issue_date || "").slice(0, 10) }); });
+    renderCalendar();
+  } catch (e) { console.warn("upcoming auctions:", e.message); }
+}
+
+/* ───── 결제 달력 ───── */
+function calData() {
+  const map = {};
+  S.rows.forEach((r) => { if (!r.issue || !r.total) return;
+    const d = map[r.issue] || (map[r.issue] = { Bill: 0, Note: 0, Bond: 0, total: 0, items: [] });
+    const t = d[r.type] != null ? r.type : "Note"; d[t] += r.total; d.total += r.total; d.items.push(r); });
+  return map;
+}
+function bbBySettle() { const m = {}; S.bb.forEach((r) => { const k = (r.settlement_date || "").slice(0, 10); if (k && k !== "null") m[k] = (m[k] || 0) + (num(r.total_par_amt_accepted) || 0); }); return m; }
+
+function renderCalendar() {
+  if (!S.rows.length) return;
+  const data = calData(), bb = bbBySettle(), y = S.calY, m = S.calM, pre = `${y}-${pad(m + 1)}`;
+  $("cal-label").textContent = `${y}년 ${m + 1}월`;
+  const sum = (o, f) => Object.entries(o).filter(([k]) => k.startsWith(pre)).reduce((s, [, v]) => s + f(v), 0);
+  const mt = sum(data, (v) => v.total), mb = sum(bb, (v) => v);
+  $("cal-total").textContent = `결제 총액 ${usd(mt)}` + (mb ? ` · 바이백 −${usd(mb)}` : "");
+  const max = Math.max(1, ...Object.entries(data).filter(([k]) => k.startsWith(pre)).map(([, v]) => v.total));
+  const first = new Date(y, m, 1).getDay(), n = new Date(y, m + 1, 0).getDate(), today = iso(new Date());
+  let h = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => `<div class="dow">${d}</div>`).join("");
+  for (let i = 0; i < first; i++) h += `<div class="day blank"></div>`;
+  for (let d = 1; d <= n; d++) {
+    const key = `${pre}-${pad(d)}`, v = data[key], b = bb[key], u = S.upcoming[key], has = v || b || u;
+    const heat = v ? Math.round((v.total / max) * 20) : 0;
+    h += `<${has ? "button" : "div"} class="day${has ? " has" : ""}${key === today ? " today" : ""}" ${has ? `data-day="${key}"` : ""} style="${heat ? `background:color-mix(in srgb,var(--accent) ${heat}%,var(--panel))` : ""}">
+      <span class="n">${d}</span>
+      ${v ? `<span class="amt mono">${usd(v.total)}</span>` : ""}
+      ${b ? `<span class="bb mono">−${usd(b)} 바이백</span>` : ""}
+      ${u ? `<span class="up">◆ 경매 ${u.length}건</span>` : ""}
+      ${v ? `<span class="bar">${["Bill", "Note", "Bond"].map((t) => (v[t] ? `<i style="flex:${v[t]};background:var(--${t.toLowerCase()})"></i>` : "")).join("")}</span>` : ""}
+    </${has ? "button" : "div"}>`;
+  }
+  $("cal").innerHTML = h;
+}
+$("cal-prev").addEventListener("click", () => { if (--S.calM < 0) { S.calM = 11; S.calY--; } renderCalendar(); });
+$("cal-next").addEventListener("click", () => { if (++S.calM > 11) { S.calM = 0; S.calY++; } renderCalendar(); });
+$("cal").addEventListener("click", (e) => { const b = e.target.closest("[data-day]"); if (b) openDay(b.dataset.day); });
+
+function openDay(key) {
+  const v = calData()[key], b = bbBySettle()[key], u = S.upcoming[key];
+  let h = `<h3>${esc(key)}</h3>`;
+  if (v) {
+    h += `<h4>결제(발행) 내역</h4><table><tr><th>만기</th><th>종류</th><th>낙찰액</th><th>High</th><th>BTC</th></tr>` +
+      v.items.sort((a, c) => c.total - a.total).map((r) => `<tr><td>${esc(r.raw)}</td><td>${esc(r.type)}</td><td class="mono">${usd(r.total)}</td><td class="mono">${fx(r.high, 3, "%")}</td><td class="mono">${fx(r.btc, 2, "x")}</td></tr>`).join("") +
+      `</table><div class="tot"><span>당일 발행 총액</span><span class="mono">${usd(v.total)}</span></div>`;
+  }
+  if (b) h += `<h4>바이백 결제</h4><div class="tot" style="margin-top:0;color:var(--green)"><span>환매 낙찰액</span><span class="mono">−${usd(b)}</span></div>`;
+  if (u) h += `<h4>예정 경매</h4><table><tr><th>만기</th><th>종류</th><th>발행 예정액</th><th>결제일</th></tr>` +
+      u.map((r) => `<tr><td>${esc(r.term)}</td><td>${esc(r.type)}</td><td class="mono">${usd(r.amt)}</td><td class="mono">${esc(r.issue || "—")}</td></tr>`).join("") + `</table>`;
+  $("m-body").innerHTML = h; $("overlay").classList.remove("hidden"); $("m-close").focus();
+}
+const closeModal = () => $("overlay").classList.add("hidden");
+$("m-close").addEventListener("click", closeModal);
+$("overlay").addEventListener("click", (e) => { if (e.target === $("overlay")) closeModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+/* ───── TGA ───── */
+const TGA_TYPE = "Treasury General Account (TGA) Closing Balance";
+async function loadTGA(from, to) {
+  $("tga-from").value = from; $("tga-to").value = to;
+  setStatus("tga-status", "TGA 데이터 불러오는 중…"); $("tga-wrap").classList.add("hidden");
+  try {
+    const rows = await fetchPaged("/v1/accounting/dts/operating_cash_balance", `filter=record_date:gte:${from},record_date:lte:${to}&sort=record_date`, 1000,
+      (p, t) => setStatus("tga-status", `TGA 데이터 ${p}/${t} 페이지`));
+    S.tga = rows.filter((r) => r.account_type === TGA_TYPE).map((r) => ({ date: r.record_date, val: num(r.open_today_bal) })).filter((r) => r.val != null);
+    if (!S.tga.length) { S.tga = null; return setStatus("tga-status", "선택한 기간에 TGA 잔고 데이터가 없습니다."); }
+    setStatus("tga-status", ""); renderTGA();
+  } catch (e) { setStatus("tga-status", "⚠ TGA 데이터를 불러오지 못했습니다 (" + e.message + ")", true); }
+}
+function renderTGA() {
+  const d = S.tga, M = (v) => usd(v * 1e6); // API 단위: 백만 달러
+  const last = d[d.length - 1], hi = d.reduce((a, b) => (b.val > a.val ? b : a)), lo = d.reduce((a, b) => (b.val < a.val ? b : a)), chg = last.val - d[0].val;
+  $("t-last").textContent = M(last.val); $("t-last-s").textContent = last.date;
+  $("t-max").textContent = M(hi.val); $("t-max-s").textContent = hi.date;
+  $("t-min").textContent = M(lo.val); $("t-min-s").textContent = lo.date;
+  $("t-chg").textContent = (chg >= 0 ? "+" : "") + M(chg); $("t-chg").style.color = chg >= 0 ? "var(--green)" : "var(--red)";
+  $("tga-wrap").classList.remove("hidden");
+  const c = css("--accent");
+  mk("c-tga", { data: { labels: d.map((r) => short(r.date)), datasets: [ line("TGA 잔고 ($B)", d.map((r) => +(r.val / 1000).toFixed(1)), c, { fill: true, backgroundColor: alpha(c, 0.12), pointRadius: 0 }) ] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: "$B" } } } } });
+}
+$("tga-quick").addEventListener("click", (e) => { const b = e.target.closest("[data-d]"); if (!b) return;
+  document.querySelectorAll("#tga-quick .chip").forEach((x) => x.classList.toggle("on", x === b)); loadTGA(iso(daysAgo(+b.dataset.d)), iso(new Date())); });
+$("tga-go").addEventListener("click", () => { const f = $("tga-from").value, t = $("tga-to").value; if (!f || !t || f > t) return setStatus("tga-status", "기간을 확인해 주세요.", true);
+  document.querySelectorAll("#tga-quick .chip").forEach((x) => x.classList.remove("on")); loadTGA(f, t); });
+
+/* ───── 초기화 ───── */
+function setRange(months) { $("from").value = iso(monthsAgo(months)); $("to").value = iso(new Date()); }
+$("quick").addEventListener("click", (e) => { const b = e.target.closest("[data-m]"); if (!b) return;
+  document.querySelectorAll("#quick .chip").forEach((x) => x.classList.toggle("on", x === b)); setRange(+b.dataset.m); });
+["from", "to"].forEach((id) => $(id).addEventListener("change", () => document.querySelectorAll("#quick .chip").forEach((x) => x.classList.remove("on"))));
+setRange(12);
+let saved = "dark"; try { saved = localStorage.getItem("tad-theme") || "dark"; } catch (e) {}
+applyTheme(saved);
+if (!window.Chart) setStatus("status", "⚠ 차트 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.", true);
+</script>
+</body>
+</html>
