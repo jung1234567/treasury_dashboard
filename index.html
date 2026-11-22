@@ -345,36 +345,71 @@ function termKey(t) {
   m = t.match(/^(\d+)-Year(.*)/); if (m) return +m[1] * 365 + (m[2] ? 1 : 0);
   return 1e6;
 }
-function mapRow(r) {
-  const total = num(r.total_accepted), ind = num(r.indirect_bidder_accepted), dir = num(r.direct_bidder_accepted), pd = num(r.primary_dealer_accepted);
-  const share = (a, b) => (a != null && b ? (a / b) * 100 : null);
-  const high = num(r.high_investment_rate) ?? num(r.high_discnt_rate) ?? num(r.high_yield);
-  const med = num(r.avg_med_investment_rate) ?? num(r.avg_med_discnt_rate) ?? num(r.avg_med_yield);
-  return {
-    date: (r.auction_date || "").slice(0, 10), issue: (r.issue_date || "").slice(0, 10),
-    type: r.security_type || "Bill", raw: r.security_term || "", ...normTerm(r), cusip: r.cusip || "",
-    btc: num(r.bid_to_cover_ratio), high, med, tail: high != null && med != null ? (high - med) * 100 : null,
-    alloc: num(r.allocation_pctage), total,
-    ind: share(ind, total), dir: share(dir, total), pd: share(pd, total),
-    fima: share(num(r.fima_noncomp_accepted), total), soma: share(num(r.soma_accepted), total),
-  };
+/* 두 API(기존 auctions_query, 신규 treasury_securities_auctions_v2)의 행을 같은 모양으로 맞춘다 */
+const pair = (h, m) => (h != null && m != null ? (h - m) * 100 : null); // 같은 기준끼리만 뺀다 (bp)
+function fromV1(r) {
+  const hy = num(r.high_yield), hd = num(r.high_discnt_rate), hi = num(r.high_investment_rate);
+  return { cusip: r.cusip, type: r.security_type, raw: r.security_term, date: r.auction_date, issue: r.issue_date,
+    btc: num(r.bid_to_cover_ratio), alloc: num(r.allocation_pctage), total: num(r.total_accepted),
+    ind: num(r.indirect_bidder_accepted), dir: num(r.direct_bidder_accepted), pd: num(r.primary_dealer_accepted),
+    fima: num(r.fima_noncomp_accepted), soma: num(r.soma_accepted), high: hi ?? hd ?? hy,
+    tail: pair(hy, num(r.avg_med_yield)) ?? pair(hd, num(r.avg_med_discnt_rate)) ?? pair(hi, num(r.avg_med_investment_rate)),
+    flags: { cash_management_bill_cmb: r.cash_management_bill_cmb, inflation_index_security: r.inflation_index_security, floating_rate: r.floating_rate }, offering: null };
+}
+function fromV2(r) {
+  const hy = num(r.high_yield), hr = num(r.high_rate), hm = num(r.high_discnt_margin);
+  return { cusip: r.cusip, type: r.security_type, raw: r.security_term, date: r.comp_auction_close_date, issue: r.issue_date,
+    btc: num(r.bid_to_cover_ratio), alloc: num(r.allotted_pctage_high_rate) ?? num(r.allotted_pctage_high_yield) ?? num(r.allotted_pct_hi_discnt_margin),
+    total: num(r.grand_total_par_awarded), ind: num(r.indir_bid_comp_par_awarded), dir: num(r.dir_bid_comp_par_awarded), pd: num(r.prim_deal_comp_par_awarded),
+    fima: num(r.fima_noncomp_par_awarded), soma: num(r.soma_noncomp_par_awarded), high: num(r.investment_rate) ?? hr ?? hy ?? hm,
+    tail: pair(hy, num(r.med_yield)) ?? pair(hr, num(r.med_rate)) ?? pair(hm, num(r.med__discnt_margin)),
+    flags: { cash_management_bill_cmb: r.cash_management_bill, inflation_index_security: r.inflation_protected, floating_rate: r.floating_rate }, offering: num(r.offering_amt) };
+}
+function mapRow(n) {
+  const share = (a) => (a != null && n.total ? (a / n.total) * 100 : null);
+  const type = n.type || "Bill", raw = n.raw || "";
+  return { date: (n.date || "").slice(0, 10), issue: (n.issue || "").slice(0, 10), type, raw, cusip: n.cusip || "",
+    ...normTerm(Object.assign({ security_term: raw, security_type: type }, n.flags)),
+    btc: n.btc, high: n.high, tail: n.tail, alloc: n.alloc, total: n.total, offering: n.offering,
+    ind: share(n.ind), dir: share(n.dir), pd: share(n.pd), fima: share(n.fima), soma: share(n.soma) };
 }
 
 /* ───── 경매 데이터 로드 ───── */
+const V1 = "/v1/accounting/od/auctions_query", V2 = "/v1/accounting/od/treasury_securities_auctions_v2";
 const EXTRA = ",inflation_index_security,floating_rate,cash_management_bill_cmb";
 const CORE = "cusip,security_type,security_term,auction_date,issue_date,bid_to_cover_ratio,allocation_pctage,total_accepted,indirect_bidder_accepted,direct_bidder_accepted,primary_dealer_accepted,fima_noncomp_accepted,soma_accepted,high_investment_rate,high_discnt_rate,high_yield,avg_med_investment_rate,avg_med_discnt_rate,avg_med_yield";
+const V2F = "cusip,security_type,security_term,comp_auction_close_date,issue_date,bid_to_cover_ratio,allotted_pctage_high_rate,allotted_pctage_high_yield,allotted_pct_hi_discnt_margin,grand_total_par_awarded,indir_bid_comp_par_awarded,dir_bid_comp_par_awarded,prim_deal_comp_par_awarded,fima_noncomp_par_awarded,soma_noncomp_par_awarded,high_rate,investment_rate,high_yield,high_discnt_margin,med_rate,med_yield,med__discnt_margin,inflation_protected,floating_rate,cash_management_bill,offering_amt";
+// 필드 목록이 거부되면(HTTP 400) 필드 지정 없이 다시 받는다
+async function tryFields(path, lists, rest, size, onPage) {
+  for (let i = 0; i < lists.length; i++) {
+    try { return await fetchPaged(path, (lists[i] ? `fields=${lists[i]}&` : "") + rest, size, onPage); }
+    catch (e) { if (e.status !== 400 || i === lists.length - 1) throw e; }
+  }
+}
 
 async function loadAll() {
   const from = $("from").value, to = $("to").value;
   if (!from || !to || from > to) return setStatus("status", "시작일과 종료일을 확인해 주세요.", true);
   $("go").disabled = true; $("pbar").style.width = "5%"; setStatus("status", "경매 데이터 불러오는 중…");
-  const q = (f) => `fields=${f}&filter=auction_date:gte:${from},auction_date:lte:${to}&sort=auction_date`;
-  const prog = (p, t) => { $("pbar").style.width = Math.round((p / t) * 100) + "%"; setStatus("status", `경매 데이터 ${p}/${t} 페이지`); };
+  const today = iso(new Date()), ahead = new Date(); ahead.setDate(ahead.getDate() + 90);
+  const to2 = to >= today ? iso(ahead) : to; // 오늘까지 조회하면 공고된 예정 경매도 함께 받는다
+  const prog = (name, base) => (p, t) => { $("pbar").style.width = Math.round(base + (p / t) * 50) + "%"; setStatus("status", `${name} ${p}/${t} 페이지`); };
   try {
-    let raw;
-    try { raw = await fetchPaged("/v1/accounting/od/auctions_query", q(CORE + EXTRA), 500, prog); }
-    catch (e) { if (e.status !== 400) throw e; raw = await fetchPaged("/v1/accounting/od/auctions_query", q(CORE), 500, prog); }
-    S.rows = raw.map(mapRow).filter((r) => r.date);
+    // 신규 API(10월 이후 최신 결과) + 기존 API(과거 이력)를 모두 받아 합친다. 한쪽이 실패해도 다른 쪽으로 진행.
+    const [r2, r1] = await Promise.allSettled([
+      tryFields(V2, [V2F, ""], `filter=comp_auction_close_date:gte:${from},comp_auction_close_date:lte:${to2}&sort=comp_auction_close_date`, 500, prog("신규 경매 데이터", 50)),
+      tryFields(V1, [CORE + EXTRA, CORE], `filter=auction_date:gte:${from},auction_date:lte:${to}&sort=auction_date`, 500, prog("기존 경매 데이터", 0)),
+    ]);
+    if (r1.status === "rejected" && r2.status === "rejected") throw r2.reason;
+    const byKey = new Map(), key = (r) => r.cusip + "|" + r.date;
+    (r1.value || []).map((r) => mapRow(fromV1(r))).forEach((r) => r.date && byKey.set(key(r), r));
+    (r2.value || []).map((r) => mapRow(fromV2(r))).forEach((r) => { if (!r.date) return; const old = byKey.get(key(r)); if (!old || r.btc != null || old.btc == null) byKey.set(key(r), r); });
+    const all = [...byKey.values()].sort((a, b) => a.date.localeCompare(b.date));
+    S.future = {};
+    all.filter((r) => r.date >= today && r.btc == null).forEach((r) => (S.future[r.date] || (S.future[r.date] = [])).push({ term: r.raw || "—", type: r.type, amt: r.offering, issue: r.issue }));
+    S.upcoming = Object.assign({}, S.future);
+    S.rows = all.filter((r) => r.date <= to);
+    S.srcNote = [r1.status === "fulfilled" ? "auctions_query" : null, r2.status === "fulfilled" ? "treasury_securities_auctions_v2" : null].filter(Boolean).join(" + ");
     if (!S.rows.length) throw new Error("선택한 기간에 경매 데이터가 없습니다.");
     S.range = { from, to };
     const done = S.rows.filter((r) => r.btc != null);
@@ -383,7 +418,7 @@ async function loadAll() {
     const cnt = {}; done.forEach((r) => (cnt[r.term] = (cnt[r.term] || 0) + 1));
     S.term = terms.includes("10-Year") ? "10-Year" : terms.reduce((best, t) => (cnt[t] > (cnt[best] || 0) ? t : best), terms[0] || null); // 10-Year 우선, 없으면 경매가 가장 많은 만기
     setStatus("status", `${S.rows.length}건 로드 완료`);
-    $("a-src").textContent = `데이터: U.S. Treasury Fiscal Data · auctions_query · ${from} ~ ${to} · ${S.rows.length}건`;
+    $("a-src").textContent = `데이터: U.S. Treasury Fiscal Data · ${S.srcNote} · ${from} ~ ${to} · ${S.rows.length}건 · 최신 결과 ${(done[done.length - 1] || {}).date || "—"}`;
     const now = new Date(); S.calY = now.getFullYear(); S.calM = now.getMonth();
     showDash(); renderTerms(); renderAuction(); renderCalendar();
     $("bb-from").value = from; $("bb-to").value = to;
@@ -539,8 +574,8 @@ function renderBuyback() {
 async function loadUpcoming() {
   try {
     const rows = await fetchPaged("/v1/accounting/od/upcoming_auctions", `filter=auction_date:gte:${iso(new Date())}&sort=auction_date`, 200);
-    S.upcoming = {};
-    rows.forEach((r) => { const d = (r.auction_date || "").slice(0, 10); if (!d) return;
+    S.upcoming = Object.assign({}, S.future);
+    rows.forEach((r) => { const d = (r.auction_date || "").slice(0, 10); if (!d || (S.future || {})[d]) return;
       (S.upcoming[d] || (S.upcoming[d] = [])).push({ term: r.security_term || "—", type: r.security_type || "", amt: num(r.offering_amt), issue: (r.issue_date || "").slice(0, 10) }); });
     renderCalendar();
   } catch (e) { console.warn("upcoming auctions:", e.message); }
