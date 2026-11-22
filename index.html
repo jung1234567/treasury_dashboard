@@ -5,25 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>US Treasury Auction Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;600;700&display=swap">
 <style>
 :root{
-  --bg:#080c18;--panel:#0f1624;--panel2:#141d2e;--border:#1c2a44;
-  --accent:#00d4f5;--gold:#f5a623;--green:#1de9b6;--red:#ff3d6e;--violet:#a78bfa;--pink:#fb7185;
-  --text:#dde4f0;--muted:#6f84a6;
-  --bill:#00d4f5;--note:#a78bfa;--bond:#f5a623;
+  --bg:#141210;--panel:#1d1a17;--panel2:#252119;--border:#353028;
+  --accent:#f4a340;--gold:#e8709f;--green:#74d39a;--red:#ff5c5c;--violet:#8fa8ff;--pink:#c792ea;
+  --text:#efe9df;--muted:#a1968a;
+  --bill:#f4a340;--note:#8fa8ff;--bond:#74d39a;
 }
 [data-theme="light"]{
-  --bg:#f0f4f8;--panel:#ffffff;--panel2:#f8fafc;--border:#cbd5e1;
-  --accent:#0284c7;--gold:#b45309;--green:#047857;--red:#e11d48;--violet:#7c3aed;--pink:#be185d;
-  --text:#0f172a;--muted:#5b6b82;
-  --bill:#0284c7;--note:#7c3aed;--bond:#b45309;
+  --bg:#f8f4ec;--panel:#ffffff;--panel2:#f3eee4;--border:#ddd4c5;
+  --accent:#b85c0a;--gold:#b03a6e;--green:#2e7d4f;--red:#cf2e2e;--violet:#4458b8;--pink:#8440a8;
+  --text:#2a2520;--muted:#75695c;
+  --bill:#b85c0a;--note:#4458b8;--bond:#2e7d4f;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",system-ui,sans-serif;min-height:100vh;font-size:14px;line-height:1.5}
+body{background:var(--bg);color:var(--text);font-family:"Noto Sans KR",system-ui,sans-serif;min-height:100vh;font-size:14px;line-height:1.5}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
-.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
 .hidden{display:none!important}
 
 /* theme switch */
@@ -47,7 +47,7 @@ input[type=date]:focus-visible,button:focus-visible{outline:2px solid var(--acce
 .chip{background:transparent;border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--muted)}
 .chip:hover{color:var(--text);border-color:var(--muted)}
 .chip.on{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent);color:var(--accent);font-weight:600}
-.btn-primary{background:var(--accent);color:#04121a;border:0;border-radius:10px;padding:11px;font-weight:700}
+.btn-primary{background:var(--accent);color:#231503;border:0;border-radius:10px;padding:11px;font-weight:700}
 [data-theme="light"] .btn-primary{color:#fff}
 .btn-primary:disabled{opacity:.5;cursor:wait}
 .btn-ghost{background:transparent;border:1px solid var(--border);border-radius:10px;padding:9px;color:var(--muted)}
@@ -77,7 +77,7 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
 .kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
 .kpi .l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.kpi .v{font-size:26px;font-weight:600;margin:2px 0;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.kpi .v{font-size:26px;font-weight:600;margin:2px 0;font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:12px;color:var(--muted)}
 
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -85,8 +85,9 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .panel.wide{grid-column:1/-1}
 .panel h3{font-size:15px;font-weight:700}
 .panel .pd{font-size:12px;color:var(--muted);margin-bottom:10px}
-.cw{position:relative;height:280px}.cw.tall{height:340px}
+.cw{position:relative;height:320px}.cw.tall{height:380px}
 .note{font-size:12px;color:var(--muted);margin-top:8px}
+.note.warn{color:var(--red);background:color-mix(in srgb,var(--red) 9%,transparent);border-radius:8px;padding:8px 12px}
 @media(max-width:860px){.grid{grid-template-columns:1fr}}
 
 .guide{margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
@@ -122,7 +123,7 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 @media(max-width:640px){.day{min-height:64px;padding:4px}.day .amt{font-size:11px}.day .bb,.day .up{font-size:10px}}
 
 /* modal */
-.overlay{position:fixed;inset:0;background:rgba(2,6,16,.65);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.overlay{position:fixed;inset:0;background:rgba(12,9,6,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
 .modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:560px;max-height:86vh;overflow:auto;position:relative}
 .modal .x{position:absolute;top:10px;right:12px;background:none;border:0;font-size:18px;color:var(--muted)}
 .modal h3{font-size:17px;margin-bottom:2px}
@@ -195,8 +196,8 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
       <div class="grid">
         <div class="panel"><h3>수요 트렌드</h3><div class="pd">Bid-to-Cover Ratio &amp; Indirect Bidder 비중</div><div class="cw"><canvas id="c-demand"></canvas></div></div>
         <div class="panel"><h3>낙찰 열기</h3><div class="pd">Allocation % &amp; Tail Spread (bp)</div><div class="cw"><canvas id="c-heat"></canvas></div>
-          <div class="note">빨간 점 = Tail이 기간 평균 +1.5σ를 넘은 경매. 수요 약화 신호일 수 있습니다.</div></div>
-        <div class="panel wide"><h3>주체별 낙찰 비중 추이</h3><div class="pd">Primary Dealer · Direct · Indirect (경쟁입찰 낙찰액 대비, 누적) / FIMA · SOMA (총 낙찰액 대비, 우측 축)</div><div class="cw tall"><canvas id="c-bidders"></canvas></div></div>
+          <div class="note warn">⚠ 빨간 점 = Tail 이상 확대 구간 (평균 +1.5σ 초과). 투자자 수요 약화 신호.</div></div>
+        <div class="panel wide"><h3>주체별 낙찰 비중 추이</h3><div class="pd" id="bid-desc"></div><div class="cw tall"><canvas id="c-bidders"></canvas></div></div>
       </div>
       <div class="guide">
         <h3>해석 가이드</h3>
@@ -326,18 +327,17 @@ function applyTheme(t) {
 }
 document.querySelectorAll("[data-theme-toggle]").forEach((b) => b.addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark")));
 
-/* ───── 만기 정규화: 리오픈(예: 9-Year 10-Month)은 원 만기(10-Year)로 묶는다 ───── */
+/* ───── 만기: 리오픈(예: 9-Year 10-Month)은 원 만기(10-Year)로 묶고 reopen으로 표시 ───── */
 const STD = [2, 3, 5, 7, 10, 20, 30];
 function normTerm(r) {
   const raw = r.security_term || "", type = r.security_type || "";
-  if (r.cash_management_bill_cmb === "Yes" || /Day/i.test(raw)) return "CMB";
-  if (type === "Bill") return raw;
+  if (r.cash_management_bill_cmb === "Yes" || /Day/i.test(raw)) return { term: "CMB", reopen: false };
   const m = raw.match(/(\d+)-Year(?:\s+(\d+)-Month)?/);
-  if (!m) return raw;
+  if (type === "Bill" || !m) return { term: raw, reopen: false };
   const yrs = +m[1] + (m[2] ? +m[2] / 12 : 0);
-  const std = STD.find((s) => s >= yrs - 0.01) || Math.round(yrs);
+  const std = STD.find((x) => x >= yrs - 0.01) || Math.round(yrs);
   const suf = r.inflation_index_security === "Yes" ? " TIPS" : r.floating_rate === "Yes" ? " FRN" : "";
-  return `${std}-Year${suf}`;
+  return { term: `${std}-Year${suf}`, reopen: !!m[2] };
 }
 function termKey(t) {
   if (t === "CMB") return 0;
@@ -347,23 +347,22 @@ function termKey(t) {
 }
 function mapRow(r) {
   const total = num(r.total_accepted), ind = num(r.indirect_bidder_accepted), dir = num(r.direct_bidder_accepted), pd = num(r.primary_dealer_accepted);
-  const comp = ind != null && dir != null && pd != null ? ind + dir + pd : null;
   const share = (a, b) => (a != null && b ? (a / b) * 100 : null);
   const high = num(r.high_investment_rate) ?? num(r.high_discnt_rate) ?? num(r.high_yield);
   const med = num(r.avg_med_investment_rate) ?? num(r.avg_med_discnt_rate) ?? num(r.avg_med_yield);
   return {
     date: (r.auction_date || "").slice(0, 10), issue: (r.issue_date || "").slice(0, 10),
-    type: r.security_type || "Bill", raw: r.security_term || "", term: normTerm(r), cusip: r.cusip || "",
+    type: r.security_type || "Bill", raw: r.security_term || "", ...normTerm(r), cusip: r.cusip || "",
     btc: num(r.bid_to_cover_ratio), high, med, tail: high != null && med != null ? (high - med) * 100 : null,
     alloc: num(r.allocation_pctage), total,
-    ind: share(ind, comp), dir: share(dir, comp), pd: share(pd, comp),
+    ind: share(ind, total), dir: share(dir, total), pd: share(pd, total),
     fima: share(num(r.fima_noncomp_accepted), total), soma: share(num(r.soma_accepted), total),
   };
 }
 
 /* ───── 경매 데이터 로드 ───── */
-const CORE = "cusip,security_type,security_term,auction_date,issue_date,bid_to_cover_ratio,allocation_pctage,total_accepted,indirect_bidder_accepted,direct_bidder_accepted,primary_dealer_accepted,fima_noncomp_accepted,soma_accepted,high_investment_rate,high_discnt_rate,high_yield,avg_med_investment_rate,avg_med_discnt_rate,avg_med_yield";
 const EXTRA = ",inflation_index_security,floating_rate,cash_management_bill_cmb";
+const CORE = "cusip,security_type,security_term,auction_date,issue_date,bid_to_cover_ratio,allocation_pctage,total_accepted,indirect_bidder_accepted,direct_bidder_accepted,primary_dealer_accepted,fima_noncomp_accepted,soma_accepted,high_investment_rate,high_discnt_rate,high_yield,avg_med_investment_rate,avg_med_discnt_rate,avg_med_yield";
 
 async function loadAll() {
   const from = $("from").value, to = $("to").value;
@@ -381,7 +380,8 @@ async function loadAll() {
     const done = S.rows.filter((r) => r.btc != null);
     const terms = [...new Set(done.map((r) => r.term))].sort((a, b) => termKey(a) - termKey(b));
     S.terms = terms;
-    S.term = terms.includes("10-Year") ? "10-Year" : terms[terms.length - 1] || null;
+    const cnt = {}; done.forEach((r) => (cnt[r.term] = (cnt[r.term] || 0) + 1));
+    S.term = terms.includes("10-Year") ? "10-Year" : terms.reduce((best, t) => (cnt[t] > (cnt[best] || 0) ? t : best), terms[0] || null); // 10-Year 우선, 없으면 경매가 가장 많은 만기
     setStatus("status", `${S.rows.length}건 로드 완료`);
     $("a-src").textContent = `데이터: U.S. Treasury Fiscal Data · auctions_query · ${from} ~ ${to} · ${S.rows.length}건`;
     const now = new Date(); S.calY = now.getFullYear(); S.calM = now.getMonth();
@@ -412,13 +412,15 @@ function mk(id, cfg) {
   if (charts[id]) charts[id].destroy();
   const grid = { color: css("--border") };
   cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
-    plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, color: css("--text") } } } }, cfg.options);
+    plugins: { legend: { labels: { boxWidth: 14, boxHeight: 14, padding: 16, color: css("--muted") } } } }, cfg.options);
   const sc = cfg.options.scales || (cfg.options.scales = {});
-  sc.x = Object.assign({ grid: { display: false }, ticks: { maxTicksLimit: 10, maxRotation: 0, color: css("--muted") } }, sc.x);
+  sc.x = Object.assign({ grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 60, maxRotation: 60, autoSkipPadding: 0, font: { size: 11 }, color: css("--muted") } }, sc.x);
   Object.keys(sc).forEach((k) => { if (k !== "x") { sc[k].ticks = Object.assign({ color: css("--muted") }, sc[k].ticks); if (!sc[k].grid) sc[k].grid = grid; } });
   charts[id] = new Chart($(id), cfg);
 }
-const line = (label, data, color, extra) => Object.assign({ type: "line", label, data, borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: data.length > 60 ? 0 : 2.5, pointHoverRadius: 5, tension: 0.25, spanGaps: true }, extra);
+const line = (label, data, color, extra) => Object.assign({ type: "line", label, data, borderColor: color, backgroundColor: alpha(color, 0.15), pointBackgroundColor: color, pointBorderColor: color, borderWidth: 2, pointRadius: data.length > 60 ? 0 : 4, pointHoverRadius: 6, tension: 0.4, spanGaps: true }, extra);
+const dlabels = (arr) => arr.map((d, i) => (i === 0 || arr[i - 1].slice(0, 4) !== d.slice(0, 4) ? "'" + d.slice(2, 4) + " " : "") + d.slice(5, 7) + "/" + d.slice(8, 10));
+const pct = (v) => v + "%", bp = (v) => v + "bp";
 const alpha = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 
 /* ───── 입찰 분석 ───── */
@@ -439,7 +441,7 @@ function renderAuction() {
   const last = items[items.length - 1], prev = items[items.length - 2];
 
   $("k-rate").textContent = fx(last.high, 3, "%");
-  $("k-rate-s").textContent = `${last.date} 경매` + (prev && prev.high != null && last.high != null ? ` · 직전 대비 ${(last.high - prev.high >= 0 ? "+" : "−") + Math.abs((last.high - prev.high) * 100).toFixed(1)}bp` : "");
+  $("k-rate-s").textContent = `${last.date} 경매${last.reopen ? " (reopen)" : ""}` + (prev && prev.high != null && last.high != null ? ` · 직전 대비 ${(last.high - prev.high >= 0 ? "+" : "−") + Math.abs((last.high - prev.high) * 100).toFixed(1)}bp` : "");
   $("k-btc").textContent = fx(last.btc, 2, "x");
   $("k-btc").style.color = last.btc >= bs.mean ? "var(--green)" : "var(--red)";
   $("k-btc-s").textContent = `기간 평균 ${fx(bs.mean, 2, "x")}`;
@@ -447,32 +449,45 @@ function renderAuction() {
   $("k-alloc").textContent = fx(last.alloc, 1, "%");
   $("k-tail").textContent = fx(last.tail, 1, "bp");
   $("k-tail").style.color = tailHot(last) ? "var(--red)" : "var(--text)";
-  $("a-desc").textContent = `${S.term} · ${items.length}회 경매 · ${items[0].date} ~ ${last.date}`;
+  const nR = items.filter((d) => d.reopen).length;
+  $("a-desc").textContent = `${S.term} · ${items.length}회 경매${nR ? ` (reopen ${nR}회)` : ""} · ${items[0].date} ~ ${last.date}`;
 
   const nT = items.filter(tailHot).length, nP = items.filter(pdHot).length;
   $("badges").innerHTML = (nT ? `<span class="badge red">Tail 이상 확대 ${nT}회</span>` : "") + (nP ? `<span class="badge gold">Primary Dealer 비중 급증 ${nP}회</span>` : "");
 
-  const labels = items.map((d) => short(d.date));
+  const labels = dlabels(items.map((d) => d.date)).map((l, i) => (items[i].reopen ? l + " reopen" : l));
   const c = { accent: css("--accent"), green: css("--green"), gold: css("--gold"), red: css("--red"), violet: css("--violet"), pink: css("--pink") };
+  const few = items.length <= 60;
 
+  // 1) 수요 트렌드: BTC 막대 + Indirect 선
   mk("c-demand", { data: { labels, datasets: [
-    line("Bid-to-Cover (x)", items.map((d) => d.btc), c.green, { yAxisID: "y" }),
-    line("Indirect (%)", items.map((d) => d.ind), c.accent, { yAxisID: "y2", borderDash: [5, 3] }) ] },
-    options: { scales: { y: { position: "left", title: { display: true, text: "BTC (x)" } }, y2: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Indirect %" } } } } });
+    line("Indirect %", items.map((d) => d.ind), c.green, { yAxisID: "y2", order: 0, pointRadius: few ? 5 : 0 }),
+    { type: "bar", label: "BTC Ratio", data: items.map((d) => d.btc), backgroundColor: alpha(c.accent, 0.22), borderColor: c.accent, borderWidth: 1.5, borderRadius: 3, yAxisID: "y", order: 1 } ] },
+    options: { plugins: { legend: { reverse: true, labels: { boxWidth: 14, boxHeight: 14, padding: 16, color: css("--muted") } } },
+      scales: { y: { position: "left", beginAtZero: true, title: { display: true, text: "BTC" } },
+        y2: { position: "right", beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { callback: pct }, title: { display: true, text: "Indirect %" } } } } });
 
+  // 2) 낙찰 열기: Allocation 영역 + Tail 선 (이상치 강조)
   mk("c-heat", { data: { labels, datasets: [
-    line("Tail Spread (bp)", items.map((d) => d.tail), c.gold, { yAxisID: "y2", order: 0,
-      pointRadius: items.map((d) => (tailHot(d) ? 6 : items.length > 60 ? 0 : 2.5)), pointBackgroundColor: items.map((d) => (tailHot(d) ? c.red : c.gold)), pointBorderColor: items.map((d) => (tailHot(d) ? c.red : c.gold)) }),
-    { type: "bar", label: "Allocation (%)", data: items.map((d) => d.alloc), backgroundColor: alpha(c.violet, 0.45), borderRadius: 3, yAxisID: "y", order: 1 } ] },
-    options: { scales: { y: { position: "left", beginAtZero: true, max: 100, title: { display: true, text: "Allocation %" } }, y2: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Tail (bp)" } } } } });
+    line("Allocation %", items.map((d) => d.alloc), c.violet, { yAxisID: "y", fill: true, order: 1, pointRadius: few ? 5 : 0 }),
+    line("Tail Spread (bp)", items.map((d) => d.tail), c.red, { yAxisID: "y2", order: 0, backgroundColor: alpha(c.red, 0.1),
+      pointRadius: items.map((d) => (tailHot(d) ? 9 : few ? 3.5 : 0)), pointBackgroundColor: items.map((d) => (tailHot(d) ? c.red : c.accent)),
+      pointBorderColor: items.map((d) => (tailHot(d) ? "#fff" : c.accent)), pointBorderWidth: items.map((d) => (tailHot(d) ? 2.5 : 1)) }) ] },
+    options: { scales: { y: { position: "left", ticks: { callback: pct } },
+        y2: { position: "right", grid: { drawOnChartArea: false }, ticks: { callback: bp } } } } });
 
-  const area = (label, key, color) => line(label, items.map((d) => d[key]), color, { fill: true, backgroundColor: alpha(color, 0.35), pointRadius: 0, yAxisID: "y", borderWidth: 1.5 });
+  // 3) 주체별 낙찰 비중: 총 낙찰액 대비 5개 주체 누적 영역
+  const area = (label, key, color, extra) => line(label, items.map((d) => d[key]), color, Object.assign({ fill: true, backgroundColor: alpha(color, 0.45), pointRadius: few ? 3 : 0, borderWidth: 1.5 }, extra));
+  const lows = items.map((d) => d.ind).filter((v) => v != null);
+  const yMin = lows.length ? Math.max(0, Math.floor((Math.min(...lows) - 3) / 5) * 5) : 0;
   mk("c-bidders", { data: { labels, datasets: [
-    area("Primary Dealer", "pd", c.gold), area("Direct", "dir", c.green), area("Indirect", "ind", c.accent),
-    line("FIMA", items.map((d) => d.fima), c.violet, { yAxisID: "y2", borderDash: [4, 3], pointRadius: 0 }),
-    line("SOMA", items.map((d) => d.soma), c.pink, { yAxisID: "y2", borderDash: [4, 3], pointRadius: 0 }) ] },
-    options: { plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, color: css("--text") } }, tooltip: { callbacks: { label: (x) => `${x.dataset.label}: ${fx(x.parsed.y, 1, "%")}` } } },
-      scales: { y: { stacked: true, min: 0, max: 100, title: { display: true, text: "경쟁입찰 낙찰 비중 %" } }, y2: { position: "right", beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: "FIMA · SOMA %" } } } } });
+    area("Indirect Bidder", "ind", c.accent), area("Direct Bidder", "dir", c.green),
+    area("Primary Dealer", "pd", c.gold, { pointRadius: items.map((d) => (pdHot(d) ? 9 : few ? 3 : 0)), pointBackgroundColor: items.map((d) => (pdHot(d) ? c.red : c.gold)),
+      pointBorderColor: items.map((d) => (pdHot(d) ? "#fff" : c.gold)), pointBorderWidth: items.map((d) => (pdHot(d) ? 2.5 : 1)) }),
+    area("FIMA", "fima", c.violet), area("SOMA", "soma", c.pink) ] },
+    options: { plugins: { legend: { labels: { boxWidth: 14, boxHeight: 14, padding: 16, color: css("--muted") } }, tooltip: { callbacks: { label: (x) => `${x.dataset.label}: ${fx(x.raw, 1, "%")}` } } },
+      scales: { y: { stacked: true, min: yMin, max: 100, ticks: { callback: pct } } } } });
+  $("bid-desc").textContent = "Primary Dealer · Direct Bidder · Indirect Bidder · FIMA · SOMA — 총 낙찰액 대비 누적 영역 차트" + (nP ? ` ⚠ Primary Dealer 이상 급증 ${nP}건` : "");
 }
 
 /* ───── 바이백 ───── */
@@ -505,7 +520,7 @@ function renderBuyback() {
   $("b-acc").textContent = usd(acc); $("b-off").textContent = usd(off);
   $("b-fill").textContent = fx(avg((o) => (o.acc / o.max) * 100), 1, "%");
   $("b-dem").textContent = fx(avg((o) => o.off / o.max), 2, "x");
-  const labels = ops.map((o) => short(o.date)), B = (x) => +(x / 1e9).toFixed(3);
+  const labels = dlabels(ops.map((o) => o.date)), B = (x) => +(x / 1e9).toFixed(3);
   const c = { accent: css("--accent"), green: css("--green"), gold: css("--gold"), violet: css("--violet") };
   mk("c-bb-bar", { type: "bar", data: { labels, datasets: [
     { label: "Max Par 공고", data: ops.map((o) => B(o.max)), backgroundColor: alpha(c.gold, 0.6), borderRadius: 3 },
@@ -574,7 +589,7 @@ function openDay(key) {
   let h = `<h3>${esc(key)}</h3>`;
   if (v) {
     h += `<h4>결제(발행) 내역</h4><table><tr><th>만기</th><th>종류</th><th>낙찰액</th><th>High</th><th>BTC</th></tr>` +
-      v.items.sort((a, c) => c.total - a.total).map((r) => `<tr><td>${esc(r.raw)}</td><td>${esc(r.type)}</td><td class="mono">${usd(r.total)}</td><td class="mono">${fx(r.high, 3, "%")}</td><td class="mono">${fx(r.btc, 2, "x")}</td></tr>`).join("") +
+      v.items.sort((a, c) => c.total - a.total).map((r) => `<tr><td>${esc(r.reopen ? r.term + " reopen" : r.raw)}</td><td>${esc(r.type)}</td><td class="mono">${usd(r.total)}</td><td class="mono">${fx(r.high, 3, "%")}</td><td class="mono">${fx(r.btc, 2, "x")}</td></tr>`).join("") +
       `</table><div class="tot"><span>당일 발행 총액</span><span class="mono">${usd(v.total)}</span></div>`;
   }
   if (b) h += `<h4>바이백 결제</h4><div class="tot" style="margin-top:0;color:var(--green)"><span>환매 낙찰액</span><span class="mono">−${usd(b)}</span></div>`;
@@ -609,7 +624,7 @@ function renderTGA() {
   $("t-chg").textContent = (chg >= 0 ? "+" : "") + M(chg); $("t-chg").style.color = chg >= 0 ? "var(--green)" : "var(--red)";
   $("tga-wrap").classList.remove("hidden");
   const c = css("--accent");
-  mk("c-tga", { data: { labels: d.map((r) => short(r.date)), datasets: [ line("TGA 잔고 ($B)", d.map((r) => +(r.val / 1000).toFixed(1)), c, { fill: true, backgroundColor: alpha(c, 0.12), pointRadius: 0 }) ] },
+  mk("c-tga", { data: { labels: dlabels(d.map((r) => r.date)), datasets: [ line("TGA 잔고 ($B)", d.map((r) => +(r.val / 1000).toFixed(1)), c, { fill: true, backgroundColor: alpha(c, 0.12), pointRadius: 0 }) ] },
     options: { plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: "$B" } } } } });
 }
 $("tga-quick").addEventListener("click", (e) => { const b = e.target.closest("[data-d]"); if (!b) return;
