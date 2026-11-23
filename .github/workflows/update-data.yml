@@ -1,0 +1,70 @@
+# FRED에서 유동성 지표를 받아 data/fred.json 으로 저장합니다.
+# 필요한 것: 저장소 Settings → Secrets and variables → Actions 에 FRED_API_KEY 라는 이름의 secret
+name: Update FRED data
+
+on:
+  schedule:
+    - cron: "17 11,23 * * *"   # 매일 2회 (UTC 11:17, 23:17 = 한국시간 20:17, 08:17)
+  workflow_dispatch:            # Actions 탭에서 수동 실행 가능
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-fred-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch FRED series
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          cat > /tmp/fetch_fred.mjs <<'JS'
+          import { mkdirSync, writeFileSync } from "node:fs";
+          const KEY = process.env.FRED_API_KEY;
+          if (!KEY) { console.error("FRED_API_KEY secret이 없습니다."); process.exit(1); }
+          const IDS = ["WALCL", "WRESBAL", "WTREGEN", "RRPONTSYD", "MMMFFAQ027S", "SOFR", "EFFR", "IORB",
+                       "DGS2", "DGS10", "DGS30", "T10Y2Y", "T10Y3M", "BAMLH0A0HYM2", "BAMLC0A0CM"];
+          const LONG = new Set(["MMMFFAQ027S"]);            // 분기 자료는 더 길게
+          const ago = (y) => { const d = new Date(); d.setFullYear(d.getFullYear() - y); return d.toISOString().slice(0, 10); };
+          const api = async (path, params) => {
+            const q = new URLSearchParams({ ...params, api_key: KEY, file_type: "json" });
+            const r = await fetch(`https://api.stlouisfed.org/fred/${path}?${q}`);
+            if (!r.ok) throw new Error(`${path} ${params.series_id} HTTP ${r.status}`);
+            return r.json();
+          };
+          const out = { updated: new Date().toISOString(), series: {}, errors: {} };
+          for (const id of IDS) {
+            try {
+              const meta = (await api("series", { series_id: id })).seriess[0];
+              const raw = (await api("series/observations", { series_id: id, observation_start: ago(LONG.has(id) ? 6 : 2) })).observations;
+              // 금액 단위는 모두 십억 달러($B)로 통일
+              const scale = /Millions/i.test(meta.units) ? 1 / 1000 : 1;
+              const unit = /Millions|Billions/i.test(meta.units) ? "$B" : meta.units;
+              const obs = raw.filter((o) => o.value !== "." && o.value !== "").map((o) => [o.date, +(Number(o.value) * scale).toFixed(4)]);
+              out.series[id] = { title: meta.title, unit, freq: meta.frequency_short, last_updated: meta.last_updated, obs };
+              console.log(id, obs.length, "obs, last", obs.at(-1));
+            } catch (e) { out.errors[id] = String(e.message || e); console.error("FAILED", id, e.message); }
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          if (!Object.keys(out.series).length) { console.error("모든 시리즈 실패"); process.exit(1); }
+          mkdirSync("data", { recursive: true });
+          writeFileSync("data/fred.json", JSON.stringify(out));
+          JS
+          node /tmp/fetch_fred.mjs
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/fred.json
+          git diff --cached --quiet && echo "변경 없음" || (git commit -m "Update FRED data" && git push)
