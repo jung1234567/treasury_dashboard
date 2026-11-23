@@ -362,7 +362,7 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
       <div class="panel wide"><h3>단기금리 추이</h3><div class="pd">SOFR · TGCR · BGCR · EFFR (%) / 점선 = 연준 목표 범위</div><div class="cw tall"><canvas id="c-rates"></canvas></div></div>
       <div class="panel"><h3>SOFR − EFFR 스프레드</h3><div class="pd">bp · 위로 튈수록 리포시장 자금 압박</div><div class="cw"><canvas id="c-spread"></canvas></div></div>
       <div class="panel"><h3>SOFR 거래량</h3><div class="pd">하루 리포 거래 규모 ($B)</div><div class="cw"><canvas id="c-vol"></canvas></div></div>
-      <div class="panel wide"><h3>ON RRP 잔고 &amp; SRF 이용액</h3><div class="pd">연준 역레포에 맡겨진 현금 ($B, 왼쪽) / 상설 레포 창구 이용액 ($B, 오른쪽)</div><div class="cw tall"><canvas id="c-rrp"></canvas></div></div>
+      <div class="panel wide"><h3>ON RRP 잔고 &amp; SRF 이용액</h3><div class="pd">연준 역레포에 맡겨진 현금 ($B, 왼쪽) / 연준 레포 창구 이용액 ($B, 오른쪽) · FRED 일간</div><div class="cw tall"><canvas id="c-rrp"></canvas></div></div>
     </div>
     <div class="src">단기자금시장 상세: Federal Reserve Bank of New York · Markets Data API (Reference Rates, Repo/Reverse Repo Operations)</div>
   </section>
@@ -807,30 +807,30 @@ $("tga-go").addEventListener("click", () => { const f = $("tga-from").value, t =
 /* ───── 유동성 (뉴욕 연준 Markets Data API) ───── */
 const NYF = "https://markets.newyorkfed.org/api";
 async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }
-const opsByDate = (j) => { const m = {}; (((j || {}).repo || {}).operations || []).forEach((o) => { const d = (o.operationDate || "").slice(0, 10), a = num(o.totalAmtAccepted); if (d && a != null) m[d] = (m[d] || 0) + a; }); return m; };
 async function loadLiq(days) {
-  const from = iso(daysAgo(days)), to = iso(new Date()), q = `startDate=${from}&endDate=${to}`;
-  S.liqBusy = true; setStatus("liq-status", "유동성 데이터 불러오는 중…");
-  const [ra, rr, rs] = await Promise.allSettled([
-    getJSON(`${NYF}/rates/all/search.json?${q}`),
-    getJSON(`${NYF}/rp/reverserepo/all/results/search.json?${q}`),
-    getJSON(`${NYF}/rp/repo/all/results/search.json?${q}`) ]);
+  const from = iso(daysAgo(days)), to = iso(new Date());
+  S.liqBusy = true; setStatus("liq-status", "단기금리 데이터 불러오는 중…");
+  let j = null, err = null;
+  try { j = await getJSON(`${NYF}/rates/all/search.json?startDate=${from}&endDate=${to}`); } catch (e) { err = e; }
   S.liqBusy = false;
   const by = {};
-  if (ra.status === "fulfilled") ((ra.value || {}).refRates || []).forEach((r) => { const d = (r.effectiveDate || "").slice(0, 10), v = num(r.percentRate); if (!d || v == null || !r.type) return;
+  ((j || {}).refRates || []).forEach((r) => { const d = (r.effectiveDate || "").slice(0, 10), v = num(r.percentRate); if (!d || v == null || !r.type) return;
     const o = by[d] || (by[d] = {}); o[r.type] = v; if (r.type === "SOFR") o.vol = num(r.volumeInBillions);
     if (r.type === "EFFR") { o.lo = num(r.targetRateFrom); o.hi = num(r.targetRateTo); } });
   const dates = Object.keys(by).filter((d) => by[d].SOFR != null || by[d].EFFR != null).sort();
-  const rrp = rr.status === "fulfilled" ? opsByDate(rr.value) : null, srf = rs.status === "fulfilled" ? opsByDate(rs.value) : null;
-  if (!dates.length && !rrp) { S.liq = null; $("liq-charts").classList.add("hidden");
-    return setStatus("liq-status", "⚠ 뉴욕 연준 데이터를 불러오지 못했습니다" + (ra.reason ? " (" + ra.reason.message + ")" : ""), true); }
-  S.liq = { dates, by, rrp, srf, from, to };
-  const miss = [ra.status !== "fulfilled" || !dates.length ? "금리" : "", rrp ? "" : "역레포", srf ? "" : "SRF"].filter(Boolean);
-  setStatus("liq-status", miss.length ? `⚠ 일부 데이터를 불러오지 못했습니다: ${miss.join(", ")}` : "", miss.length > 0);
+  S.liq = { dates, by, from, to };
+  setStatus("liq-status", dates.length ? "" : "⚠ 뉴욕 연준 금리 데이터를 불러오지 못했습니다" + (err ? " (" + err.message + ")" : ""), !dates.length);
   renderLiq();
 }
+// ON RRP 잔고·SRF 이용액은 FRED 파일에서 가져온다 (단위 $B → 달러)
+function fredAmt(ids, from) {
+  for (const id of ids) { const o = (((S.fred || {}).series || {})[id] || {}).obs; if (!o) continue;
+    const m = {}; o.filter((x) => x[0] >= from).forEach((x) => (m[x[0]] = x[1] * 1e9)); return m; }
+  return null;
+}
 function renderLiq() {
-  const L = S.liq, c = { accent: css("--accent"), green: css("--green"), gold: css("--gold"), red: css("--red"), violet: css("--violet"), pink: css("--pink"), muted: css("--muted") };
+  const L = S.liq; L.rrp = fredAmt(["RRPONTSYD"], L.from); L.srf = fredAmt(["RPONTTLD", "RPONTSYD"], L.from);
+  const c = { accent: css("--accent"), green: css("--green"), gold: css("--gold"), red: css("--red"), violet: css("--violet"), pink: css("--pink"), muted: css("--muted") };
   $("liq-charts").classList.remove("hidden");
   const lastOf = (key) => { for (let i = L.dates.length - 1; i >= 0; i--) if (L.by[L.dates[i]][key] != null) return { d: L.dates[i], v: L.by[L.dates[i]][key], prev: i > 0 ? L.by[L.dates[i - 1]][key] : null }; return null; };
   const chg = (x) => (x.prev == null ? "" : ` · 전일 대비 ${x.v - x.prev >= 0 ? "+" : "−"}${Math.abs((x.v - x.prev) * 100).toFixed(0)}bp`);
@@ -839,7 +839,7 @@ function renderLiq() {
   $("q-effr").textContent = ef ? fx(ef.v, 2, "%") : "—"; $("q-effr-s").textContent = ef ? ef.d + chg(ef) : "";
   const spr = L.dates.map((d) => pair(L.by[d].SOFR, L.by[d].EFFR)), ls = [...spr].reverse().find((v) => v != null);
   $("q-spr").textContent = ls == null ? "—" : (ls >= 0 ? "+" : "−") + Math.abs(ls).toFixed(0) + "bp"; $("q-spr").style.color = ls > 0 ? "var(--red)" : "var(--text)";
-  const lastAmt = (m, idV, idS, zero) => { const ks = m ? Object.keys(m).sort() : []; if (!ks.length) { $(idV).textContent = m ? "$0" : "—"; $(idS).textContent = m ? zero : ""; return; }
+  const lastAmt = (m, idV, idS, zero) => { const ks = m ? Object.keys(m).sort() : []; if (!ks.length) { $(idV).textContent = m ? "$0" : "—"; $(idS).textContent = m ? zero : "자동 갱신을 한 번 더 실행하면 표시됩니다"; return; }
     const k = ks[ks.length - 1]; $(idV).textContent = usd(m[k]); $(idS).textContent = k; };
   lastAmt(L.rrp, "q-rrp", "q-rrp-s", "기간 중 이용 없음"); lastAmt(L.srf, "q-srf", "q-srf-s", "기간 중 이용 없음");
 
@@ -878,7 +878,7 @@ async function loadFred() {
   S.fredBusy = false;
   if (!best) { $("fred-wrap").classList.add("hidden");
     return setStatus("fred-status", "FRED 지표 파일(data/fred.json)이 아직 없습니다. 저장소에 자동 갱신 설정을 마치고 한 번 실행하면 여기에 그래프가 나타납니다.", true); }
-  S.fred = best; setStatus("fred-status", ""); renderFred();
+  S.fred = best; setStatus("fred-status", ""); renderFred(); if (S.liq) renderLiq();
 }
 function renderFred() {
   const F = S.fred.series, days = S.liqDays || 90, cut = iso(daysAgo(days));
@@ -906,7 +906,7 @@ function renderFred() {
     const scales = { y: Object.assign({ position: "left" }, opt.y) }; if (opt.y2) scales.y2 = Object.assign({ position: "right", grid: { drawOnChartArea: false } }, opt.y2);
     mk(id, { data: { labels: dlabels(dates), datasets: ds }, options: Object.assign({ scales }, opt.noLegend ? { plugins: { legend: { display: false } } } : {}) });
   };
-  const tB = { callback: (v) => "$" + (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + "T" : v + "B") }, tP = { callback: (v) => v.toFixed(2) + "%" };
+  const tB = { callback: (v) => "$" + (Math.abs(v) >= 1000 ? (v / 1000).toFixed(2) + "T" : +v.toFixed(1) + "B") }, tP = { callback: (v) => v.toFixed(2) + "%" };
   draw("c-f-bs", [{ label: "연준 총자산", data: obs("WALCL"), color: c.accent }, { label: "지급준비금", data: obs("WRESBAL"), color: c.green, axis: "y2" }],
     { y: { ticks: tB, title: { display: true, text: "총자산" } }, y2: { ticks: tB, title: { display: true, text: "지급준비금" } } });
   draw("c-f-tga", [{ label: "TGA (주간 평균)", data: obs("WTREGEN"), color: c.gold, extra: { fill: true } }, { label: "ON RRP", data: obs("RRPONTSYD"), color: c.green }], { y: { beginAtZero: true, ticks: tB } });
