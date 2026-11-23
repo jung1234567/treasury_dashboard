@@ -138,10 +138,11 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .modal .x{position:absolute;top:10px;right:12px;background:none;border:0;font-size:18px;color:var(--muted)}
 .modal h3{font-size:17px;margin-bottom:2px}
 .modal h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
-.modal table{width:100%;border-collapse:collapse;font-size:13px}
-.modal td,.modal th{padding:6px 4px;border-bottom:1px solid var(--border);text-align:right}
-.modal th{font-size:11px;color:var(--muted);font-weight:600}
-.modal td:first-child,.modal th:first-child{text-align:left}
+.modal table,.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.modal td,.modal th,.tbl td,.tbl th{padding:6px 4px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+.modal th,.tbl th{font-size:11px;color:var(--muted);font-weight:600}
+.modal td:first-child,.modal th:first-child,.tbl td:first-child,.tbl th:first-child{text-align:left}
+a.btn-sm{color:var(--text);text-decoration:none;white-space:nowrap}
 .modal .tot{display:flex;justify-content:space-between;margin-top:12px;font-weight:700}
 footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-items:center;justify-content:center;background:var(--panel);border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
 </style>
@@ -195,7 +196,7 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
     </div>
     <div class="terms" id="terms"></div>
     <div class="kpis">
-      <div class="kpi"><div class="l">High Rate</div><div class="v" id="k-rate" style="color:var(--accent)">—</div><div class="s" id="k-rate-s"></div></div>
+      <div class="kpi"><div class="l">High Rate</div><div class="v" id="k-rate" style="color:var(--accent)">—</div><div class="s" id="k-rate-s"></div><div class="s" id="k-rate-pdf"></div></div>
       <div class="kpi"><div class="l">Bid-to-Cover</div><div class="v" id="k-btc">—</div><div class="s" id="k-btc-s"></div></div>
       <div class="kpi"><div class="l">Indirect 비중</div><div class="v" id="k-ind" style="color:var(--accent)">—</div><div class="s">해외 중앙은행 등 간접 입찰</div></div>
       <div class="kpi"><div class="l">Allocation %</div><div class="v" id="k-alloc" style="color:var(--violet)">—</div><div class="s">최고금리 응찰분 배정 비율</div></div>
@@ -208,6 +209,13 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
         <div class="panel"><h3>낙찰 열기</h3><div class="pd">Allocation % &amp; Tail Spread (bp)</div><div class="cw"><canvas id="c-heat"></canvas></div>
           <div class="note warn">⚠ 빨간 점 = Tail 이상 확대 구간 (평균 +1.5σ 초과). 투자자 수요 약화 신호.</div></div>
         <div class="panel wide"><h3>주체별 낙찰 비중 추이</h3><div class="pd" id="bid-desc"></div><div class="cw tall"><canvas id="c-bidders"></canvas></div></div>
+      </div>
+      <div class="panel" style="margin-top:14px">
+        <div class="head" style="margin-bottom:8px">
+          <div><h3>경매 결과 원문 (TreasuryDirect PDF)</h3><div class="pd" style="margin:0" id="res-desc"></div></div>
+          <a class="btn-sm" href="https://www.treasurydirect.gov/auctions/announcements-data-results/" target="_blank" rel="noopener">TreasuryDirect 전체 결과 ↗</a>
+        </div>
+        <div style="overflow-x:auto"><table class="tbl" id="res-table"></table></div>
       </div>
       <div class="guide">
         <h3>해석 가이드</h3>
@@ -375,7 +383,7 @@ function fromV1(r) {
     ind: num(r.indirect_bidder_accepted), dir: num(r.direct_bidder_accepted), pd: num(r.primary_dealer_accepted),
     fima: num(r.fima_noncomp_accepted), soma: num(r.soma_accepted), high: hi ?? hd ?? hy,
     tail: pair(hy, num(r.avg_med_yield)) ?? pair(hd, num(r.avg_med_discnt_rate)) ?? pair(hi, num(r.avg_med_investment_rate)),
-    flags: { cash_management_bill_cmb: r.cash_management_bill_cmb, inflation_index_security: r.inflation_index_security, floating_rate: r.floating_rate }, offering: null };
+    flags: { cash_management_bill_cmb: r.cash_management_bill_cmb, inflation_index_security: r.inflation_index_security, floating_rate: r.floating_rate }, offering: null, pdf: r.pdf_filenm_comp_results };
 }
 function fromV2(r) {
   const hy = num(r.high_yield), hr = num(r.high_rate), hm = num(r.high_discnt_margin);
@@ -384,22 +392,26 @@ function fromV2(r) {
     total: num(r.grand_total_par_awarded), ind: num(r.indir_bid_comp_par_awarded), dir: num(r.dir_bid_comp_par_awarded), pd: num(r.prim_deal_comp_par_awarded),
     fima: num(r.fima_noncomp_par_awarded), soma: num(r.soma_noncomp_par_awarded), high: num(r.investment_rate) ?? hr ?? hy ?? hm,
     tail: pair(hy, num(r.med_yield)) ?? pair(hr, num(r.med_rate)) ?? pair(hm, num(r.med__discnt_margin)),
-    flags: { cash_management_bill_cmb: r.cash_management_bill, inflation_index_security: r.inflation_protected, floating_rate: r.floating_rate }, offering: num(r.offering_amt) };
+    flags: { cash_management_bill_cmb: r.cash_management_bill, inflation_index_security: r.inflation_protected, floating_rate: r.floating_rate }, offering: num(r.offering_amt), pdf: r.pdf_filenm_comp_results };
 }
+/* TreasuryDirect 경매 결과 보도자료 PDF: /instit/annceresult/press/preanre/연도/R_YYYYMMDD_n.pdf */
+const TD_LIST = "https://www.treasurydirect.gov/auctions/announcements-data-results/";
+function pdfUrl(name) { const m = /^R_(\d{4})\d{4}_\d+\.pdf$/i.exec(name || ""); return m ? `https://www.treasurydirect.gov/instit/annceresult/press/preanre/${m[1]}/${name}` : ""; }
+const pdfLink = (r, text) => (r.pdf ? `<a href="${esc(r.pdf)}" target="_blank" rel="noopener">${text || "PDF"} ↗</a>` : "—");
 function mapRow(n) {
   const share = (a) => (a != null && n.total ? (a / n.total) * 100 : null);
   const type = n.type || "Bill", raw = n.raw || "";
   return { date: (n.date || "").slice(0, 10), issue: (n.issue || "").slice(0, 10), type, raw, cusip: n.cusip || "",
     ...normTerm(Object.assign({ security_term: raw, security_type: type }, n.flags)),
-    btc: n.btc, high: n.high, tail: n.tail, alloc: n.alloc, total: n.total, offering: n.offering,
+    btc: n.btc, high: n.high, tail: n.tail, alloc: n.alloc, total: n.total, offering: n.offering, pdf: pdfUrl(n.pdf),
     ind: share(n.ind), dir: share(n.dir), pd: share(n.pd), fima: share(n.fima), soma: share(n.soma) };
 }
 
 /* ───── 경매 데이터 로드 ───── */
 const V1 = "/v1/accounting/od/auctions_query", V2 = "/v1/accounting/od/treasury_securities_auctions_v2";
-const EXTRA = ",inflation_index_security,floating_rate,cash_management_bill_cmb";
+const EXTRA = ",inflation_index_security,floating_rate,cash_management_bill_cmb,pdf_filenm_comp_results";
 const CORE = "cusip,security_type,security_term,auction_date,issue_date,bid_to_cover_ratio,allocation_pctage,total_accepted,indirect_bidder_accepted,direct_bidder_accepted,primary_dealer_accepted,fima_noncomp_accepted,soma_accepted,high_investment_rate,high_discnt_rate,high_yield,avg_med_investment_rate,avg_med_discnt_rate,avg_med_yield";
-const V2F = "cusip,security_type,security_term,comp_auction_close_date,issue_date,bid_to_cover_ratio,allotted_pctage_high_rate,allotted_pctage_high_yield,allotted_pct_hi_discnt_margin,grand_total_par_awarded,indir_bid_comp_par_awarded,dir_bid_comp_par_awarded,prim_deal_comp_par_awarded,fima_noncomp_par_awarded,soma_noncomp_par_awarded,high_rate,investment_rate,high_yield,high_discnt_margin,med_rate,med_yield,med__discnt_margin,inflation_protected,floating_rate,cash_management_bill,offering_amt";
+const V2F = "cusip,security_type,security_term,comp_auction_close_date,issue_date,bid_to_cover_ratio,allotted_pctage_high_rate,allotted_pctage_high_yield,allotted_pct_hi_discnt_margin,grand_total_par_awarded,indir_bid_comp_par_awarded,dir_bid_comp_par_awarded,prim_deal_comp_par_awarded,fima_noncomp_par_awarded,soma_noncomp_par_awarded,high_rate,investment_rate,high_yield,high_discnt_margin,med_rate,med_yield,med__discnt_margin,inflation_protected,floating_rate,cash_management_bill,offering_amt,pdf_filenm_comp_results";
 // 필드 목록이 거부되면(HTTP 400) 필드 지정 없이 다시 받는다
 async function tryFields(path, lists, rest, size, onPage) {
   for (let i = 0; i < lists.length; i++) {
@@ -424,7 +436,7 @@ async function loadAll() {
     if (r1.status === "rejected" && r2.status === "rejected") throw r2.reason;
     const byKey = new Map(), key = (r) => r.cusip + "|" + r.date;
     (r1.value || []).map((r) => mapRow(fromV1(r))).forEach((r) => r.date && byKey.set(key(r), r));
-    (r2.value || []).map((r) => mapRow(fromV2(r))).forEach((r) => { if (!r.date) return; const old = byKey.get(key(r)); if (!old || r.btc != null || old.btc == null) byKey.set(key(r), r); });
+    (r2.value || []).map((r) => mapRow(fromV2(r))).forEach((r) => { if (!r.date) return; const old = byKey.get(key(r)); if (old && !r.pdf) r.pdf = old.pdf; if (!old || r.btc != null || old.btc == null) byKey.set(key(r), r); else if (!old.pdf) old.pdf = r.pdf; });
     const all = [...byKey.values()].sort((a, b) => a.date.localeCompare(b.date));
     S.future = {};
     all.filter((r) => r.date >= today && r.btc == null).forEach((r) => (S.future[r.date] || (S.future[r.date] = [])).push({ term: r.raw || "—", type: r.type, amt: r.offering, issue: r.issue }));
@@ -498,6 +510,7 @@ function renderAuction() {
 
   $("k-rate").textContent = fx(last.high, 3, "%");
   $("k-rate-s").textContent = `${last.date} 경매${last.reopen ? " (reopen)" : ""}` + (prev && prev.high != null && last.high != null ? ` · 직전 대비 ${(last.high - prev.high >= 0 ? "+" : "−") + Math.abs((last.high - prev.high) * 100).toFixed(1)}bp` : "");
+  $("k-rate-pdf").innerHTML = last.pdf ? pdfLink(last, "TreasuryDirect 결과 PDF") : "";
   $("k-btc").textContent = fx(last.btc, 2, "x");
   $("k-btc").style.color = last.btc >= bs.mean ? "var(--green)" : "var(--red)";
   $("k-btc-s").textContent = `기간 평균 ${fx(bs.mean, 2, "x")}`;
@@ -511,6 +524,10 @@ function renderAuction() {
   const nT = items.filter(tailHot).length, nP = items.filter(pdHot).length;
   $("badges").innerHTML = (nT ? `<span class="badge red">Tail 이상 확대 ${nT}회</span>` : "") + (nP ? `<span class="badge gold">Primary Dealer 비중 급증 ${nP}회</span>` : "");
 
+  const recent = items.slice(-12).reverse();
+  $("res-desc").textContent = `${S.term} 최근 ${recent.length}회 · 재무부가 경매 직후 내는 결과 보도자료`;
+  $("res-table").innerHTML = `<tr><th>경매일</th><th>만기</th><th>High</th><th>BTC</th><th>Indirect</th><th>Tail</th><th>결과 원문</th></tr>` +
+    recent.map((r) => `<tr><td class="mono">${esc(r.date)}</td><td>${esc(r.reopen ? r.term + " reopen" : r.raw)}</td><td class="mono">${fx(r.high, 3, "%")}</td><td class="mono">${fx(r.btc, 2, "x")}</td><td class="mono">${fx(r.ind, 1, "%")}</td><td class="mono">${fx(r.tail, 1, "bp")}</td><td>${pdfLink(r)}</td></tr>`).join("");
   const labels = dlabels(items.map((d) => d.date)).map((l, i) => (items[i].reopen ? l + " reopen" : l));
   const c = { accent: css("--accent"), green: css("--green"), gold: css("--gold"), red: css("--red"), violet: css("--violet"), pink: css("--pink") };
   const few = items.length <= 60;
@@ -668,8 +685,8 @@ function openDay(key) {
   const v = calData()[key], b = bbBySettle()[key], u = S.upcoming[key], q = qraMap(+key.slice(0, 4))[key];
   let h = `<h3>${esc(key)}</h3>`;
   if (v) {
-    h += `<h4>결제(발행) 내역</h4><table><tr><th>만기</th><th>종류</th><th>낙찰액</th><th>High</th><th>BTC</th></tr>` +
-      v.items.sort((a, c) => c.total - a.total).map((r) => `<tr><td>${esc(r.reopen ? r.term + " reopen" : r.raw)}</td><td>${esc(r.type)}</td><td class="mono">${usd(r.total)}</td><td class="mono">${fx(r.high, 3, "%")}</td><td class="mono">${fx(r.btc, 2, "x")}</td></tr>`).join("") +
+    h += `<h4>결제(발행) 내역</h4><table><tr><th>만기</th><th>종류</th><th>낙찰액</th><th>High</th><th>BTC</th><th>원문</th></tr>` +
+      v.items.sort((a, c) => c.total - a.total).map((r) => `<tr><td>${esc(r.reopen ? r.term + " reopen" : r.raw)}</td><td>${esc(r.type)}</td><td class="mono">${usd(r.total)}</td><td class="mono">${fx(r.high, 3, "%")}</td><td class="mono">${fx(r.btc, 2, "x")}</td><td>${pdfLink(r)}</td></tr>`).join("") +
       `</table><div class="tot"><span>당일 발행 총액</span><span class="mono">${usd(v.total)}</span></div>`;
   }
   if (b) h += `<h4>바이백 결제</h4><div class="tot" style="margin-top:0;color:var(--green)"><span>환매 낙찰액</span><span class="mono">−${usd(b)}</span></div>`;
