@@ -72,7 +72,12 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .badge{border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;border:1px solid}
 .badge.red{color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent)}
 .badge.gold{color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent)}
-.terms{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.terms{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.terms .sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.chip.latest{border-color:var(--accent);color:var(--accent);font-weight:600}
+.chip.latest.on{background:var(--accent);color:var(--bg)}
+.lnk{background:none;border:0;padding:0;color:var(--accent);font-weight:600}
+.lnk:hover{text-decoration:underline}
 
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
 .kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
@@ -87,6 +92,7 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .panel .pd{font-size:12px;color:var(--muted);margin-bottom:10px}
 .cw{position:relative;height:320px}.cw.tall{height:380px}
 .note{font-size:12px;color:var(--muted);margin-top:8px}
+.note b{color:var(--text)}
 .note.warn{color:var(--red);background:color-mix(in srgb,var(--red) 9%,transparent);border-radius:8px;padding:8px 12px}
 @media(max-width:860px){.grid{grid-template-columns:1fr}}
 
@@ -197,7 +203,15 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
       <div class="badges" id="badges"></div>
     </div>
     <div class="terms" id="terms"></div>
-    <div class="kpis">
+    <div class="panel hidden" id="a-latest">
+      <div class="head" style="margin-bottom:8px">
+        <div><h3>최신 경매 결과</h3><div class="pd" style="margin:0" id="lt-desc"></div></div>
+        <a class="btn-sm" href="https://www.treasurydirect.gov/auctions/announcements-data-results/" target="_blank" rel="noopener">TreasuryDirect 전체 결과 ↗</a>
+      </div>
+      <div style="overflow-x:auto"><table class="tbl" id="lt-table"></table></div>
+      <div style="text-align:center;margin-top:12px"><button class="btn-sm hidden" id="lt-more">더 보기</button></div>
+    </div>
+    <div class="kpis" id="a-kpis">
       <div class="kpi"><div class="l">High Rate</div><div class="v" id="k-rate" style="color:var(--accent)">—</div><div class="s" id="k-rate-s"></div><div class="s" id="k-rate-pdf"></div></div>
       <div class="kpi"><div class="l">Bid-to-Cover</div><div class="v" id="k-btc">—</div><div class="s" id="k-btc-s"></div></div>
       <div class="kpi"><div class="l">Indirect 비중</div><div class="v" id="k-ind" style="color:var(--accent)">—</div><div class="s">해외 중앙은행 등 간접 입찰</div></div>
@@ -317,7 +331,7 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
       <summary>이 그래프들은 어떻게 읽나요?</summary>
       <ul>
         <li><span class="dot" style="background:var(--accent)"></span><b>연준 총자산 ↓ · 지급준비금 ↓</b> — 연준이 시중에서 돈을 거둬들이는 중(QT). 지급준비금이 줄수록 은행권 현금 여유가 얇아집니다</li>
-        <li><span class="dot" style="background:var(--red)"></span><b>SOFR − IORB ↑</b> — 리포금리가 연준이 지급준비금에 주는 이자보다 높아짐. 지급준비금이 "넉넉"에서 "빠듯"으로 넘어가는 대표 신호</li>
+        <li><span class="dot" style="background:var(--red)"></span><b>SOFR − IORB ↑</b> — 리포금리가 연준이 지급준비금에 주는 이자보다 높아짐. 지급준비금이 "넉넉"에서 "빠듯"으로 넘어가는 대표 신호. 하루 튄 것보다 플러스가 며칠씩 이어지는지가 중요합니다</li>
         <li><span class="dot" style="background:var(--violet)"></span><b>장단기 금리차 ↓ (역전)</b> — 시장이 앞으로 금리 인하·경기 둔화를 예상. 다시 벌어지는 구간도 함께 봅니다</li>
         <li><span class="dot" style="background:var(--gold)"></span><b>하이일드 스프레드 ↑</b> — 신용도가 낮은 기업이 국채보다 훨씬 비싸게 빌림. 위험 회피 심리가 커졌다는 뜻</li>
         <li><span class="dot" style="background:var(--accent)"></span><b>SOFR</b> — 미 국채를 담보로 한 하루짜리 리포 거래의 대표 금리. 시중에 현금이 부족해지면 오릅니다. TGCR·BGCR은 SOFR보다 범위가 좁은 리포금리입니다</li>
@@ -341,11 +355,22 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
       <div class="grid">
         <div class="panel"><h3>연준 총자산 &amp; 지급준비금</h3><div class="pd">주간 · $B · 연준 대차대조표(H.4.1)</div><div class="cw"><canvas id="c-f-bs"></canvas></div></div>
         <div class="panel"><h3>TGA &amp; ON RRP</h3><div class="pd">$B · TGA는 주간 평균, RRP는 일간</div><div class="cw"><canvas id="c-f-tga"></canvas></div></div>
-        <div class="panel"><h3>SOFR − IORB</h3><div class="pd">bp · 0 위로 올라오면 지급준비금이 빡빡해졌다는 신호</div><div class="cw"><canvas id="c-f-si"></canvas></div></div>
+        <div class="panel"><h3>SOFR − IORB</h3><div class="pd">bp · 0 위로 올라오면 지급준비금이 빡빡해졌다는 신호</div><div class="cw"><canvas id="c-f-si"></canvas></div>
+          <div class="note">볼 때는 하루 튄 것보다 <b>지속성</b>이 중요합니다. 월말·분기말이나 국채 결제가 몰린 날 하루 이틀 튀는 것은 흔하고, 평소에도 플러스가 유지되면 의미가 큽니다. IORB는 연준이 정해 고정해 두는 금리라서, 이 막대는 "고정된 기준선 대비 시장 리포금리가 얼마나 올라와 있나"를 보여줍니다.</div></div>
         <div class="panel"><h3>MMF 총자산</h3><div class="pd">분기 · $B · 연준 자금순환표(Z.1) 기준이라 몇 달 늦습니다</div><div class="cw"><canvas id="c-f-mmf"></canvas></div></div>
         <div class="panel"><h3>미국 국채 금리</h3><div class="pd">2년 · 10년 · 30년 (%)</div><div class="cw"><canvas id="c-f-ust"></canvas></div></div>
         <div class="panel"><h3>장단기 금리차</h3><div class="pd">10년 − 2년, 10년 − 3개월 (%p) · 0 아래 = 역전</div><div class="cw"><canvas id="c-f-curve"></canvas></div></div>
-        <div class="panel wide"><h3>신용 스프레드</h3><div class="pd">하이일드 · 투자등급 회사채 OAS (%) — CDS 프리미엄은 무료 공개 데이터가 없어 회사채 스프레드로 대신합니다</div><div class="cw tall"><canvas id="c-f-credit"></canvas></div></div>
+        <div class="panel wide"><h3>신용 스프레드</h3><div class="pd">하이일드 · 투자등급 회사채 OAS (%) · 국채 대비 회사채 가산금리</div><div class="cw tall"><canvas id="c-f-credit"></canvas></div></div>
+        <div class="panel wide">
+          <div class="head" style="margin-bottom:6px">
+            <div><h3>CDS 프리미엄</h3><div class="pd" style="margin:0">미국 5년물 국가 CDS · 회사채 CDS 지수(CDX)</div></div>
+            <div class="tools">
+              <a class="btn-sm" href="https://en.macromicro.me/cds" target="_blank" rel="noopener">MacroMicro 국가별 CDS ↗</a>
+              <a class="btn-sm" href="https://www.investing.com/rates-bonds/world-cds" target="_blank" rel="noopener">Investing.com 세계 CDS ↗</a>
+            </div>
+          </div>
+          <p class="qnote" style="margin:0">CDS 프리미엄은 장외 거래 시세라서 연준·재무부 같은 공공 기관이 무료로 배포하지 않고, 이 대시보드가 자동으로 받아올 수 있는 공개 데이터가 없습니다. 그래서 그래프 대신 시세를 볼 수 있는 페이지로 연결합니다. 사이트마다 호가 출처가 달라 같은 날 숫자가 서로 다를 수 있습니다. 신용위험의 흐름은 위 "신용 스프레드" 그래프로 대신 볼 수 있습니다.</p>
+        </div>
       </div>
       <div class="src" id="fred-src"></div>
     </div>
@@ -560,12 +585,28 @@ const pct = (v) => v + "%", bp = (v) => v + "bp";
 const alpha = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 
 /* ───── 입찰 분석 ───── */
+const LATEST = "__latest";
 function renderTerms() {
-  $("terms").innerHTML = S.terms.map((t) => `<button class="chip${t === S.term ? " on" : ""}" data-t="${esc(t)}">${esc(t)}</button>`).join("");
+  $("terms").innerHTML = `<button class="chip latest${S.term === LATEST ? " on" : ""}" data-t="${LATEST}">최신 결과</button><span class="sep"></span>` + S.terms.map((t) => `<button class="chip${t === S.term ? " on" : ""}" data-t="${esc(t)}">${esc(t)}</button>`).join("");
 }
 $("terms").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (!b) return; S.term = b.dataset.t; renderTerms(); renderAuction(); });
 
+function renderLatest() {
+  const all = S.rows.filter((r) => r.btc != null).sort((a, b) => b.date.localeCompare(a.date) || termKey(a.term) - termKey(b.term));
+  const n = Math.min(S.latestN || 40, all.length);
+  $("lt-desc").textContent = `전체 만기 · 경매일 최신순 · ${all.length}건 중 ${n}건 · 만기를 누르면 해당 만기 분석으로 이동`;
+  $("lt-table").innerHTML = `<tr><th>경매일</th><th>만기</th><th>종류</th><th>낙찰액</th><th>High</th><th>BTC</th><th>Indirect</th><th>Tail</th><th>결제일</th><th>결과 원문</th></tr>` +
+    all.slice(0, n).map((r) => `<tr><td class="mono">${esc(r.date)}</td><td><button class="lnk" data-t="${esc(r.term)}">${esc(r.reopen ? r.term + " reopen" : r.raw)}</button></td><td>${esc(r.type)}</td><td class="mono">${usd(r.total)}</td><td class="mono">${fx(r.high, 3, "%")}</td><td class="mono">${fx(r.btc, 2, "x")}</td><td class="mono">${fx(r.ind, 1, "%")}</td><td class="mono">${fx(r.tail, 1, "bp")}</td><td class="mono">${esc(r.issue.slice(5).replace("-", "/"))}</td><td>${pdfLink(r)}</td></tr>`).join("");
+  $("lt-more").classList.toggle("hidden", n >= all.length);
+  $("a-desc").textContent = all.length ? `전체 만기 · 최신 결과 ${all[0].date}` : "표시할 경매 결과가 없습니다";
+}
+$("lt-more").addEventListener("click", () => { S.latestN = (S.latestN || 40) + 40; renderLatest(); });
+$("a-latest").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (!b || !S.terms.includes(b.dataset.t)) return; S.term = b.dataset.t; renderTerms(); renderAuction(); window.scrollTo(0, 0); });
+
 function renderAuction() {
+  const latest = S.term === LATEST;
+  $("a-latest").classList.toggle("hidden", !latest); $("a-kpis").classList.toggle("hidden", latest);
+  if (latest) { $("a-charts").classList.add("hidden"); $("a-empty").classList.add("hidden"); $("badges").innerHTML = ""; return renderLatest(); }
   const items = S.rows.filter((r) => r.term === S.term && r.btc != null).sort((a, b) => a.date.localeCompare(b.date));
   $("a-empty").classList.toggle("hidden", items.length > 0);
   $("a-charts").classList.toggle("hidden", !items.length);
