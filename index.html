@@ -134,6 +134,15 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .day .up{font-size:11px;color:var(--gold)}
 .day .qra{font-size:11px;font-weight:700;color:var(--pink)}
 .qnote{font-size:13px;color:var(--muted);margin-bottom:8px}
+.mi{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:6px}
+.mi label{display:grid;gap:4px;font-size:12px;color:var(--muted);flex:1 1 150px}
+.mi input,.mi select{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;color:var(--text);min-width:0;width:100%}
+.mi .btn-primary{padding:9px 22px;flex:0 0 auto}
+.mi-hint{font-size:12px;color:var(--muted);margin-top:8px}
+.mi-store{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;color:var(--muted)}
+.mi-how{margin-top:10px;font-size:13px;color:var(--muted)}.mi-how summary{cursor:pointer;color:var(--accent)}
+.mi-how ol{margin:8px 0 8px 20px;display:grid;gap:4px}.mi-how b{color:var(--text)}
+.sub{font-size:12px;letter-spacing:.06em;color:var(--muted);margin:12px 0 4px;font-weight:600}
 .qnote b,.qnote code{color:var(--text)}
 code{font-family:"JetBrains Mono",monospace;font-size:.92em}
 .qlinks{list-style:none;display:grid;gap:6px;font-size:14px}
@@ -380,8 +389,51 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
               <a class="btn-sm" href="https://www.investing.com/rates-bonds/world-cds" target="_blank" rel="noopener">Investing.com 세계 CDS ↗</a>
             </div>
           </div>
-          <div class="cw hidden" id="cds-wrap"><canvas id="c-f-cds"></canvas></div>
-          <p class="qnote" style="margin:8px 0 0" id="cds-note">CDS 프리미엄은 장외 거래 시세라서 연준·재무부 같은 공공 기관이 무료로 배포하지 않고, 이 대시보드가 자동으로 받아올 수 있는 공개 데이터가 없습니다. 그래서 그래프 대신 시세를 볼 수 있는 페이지로 연결합니다. 사이트마다 호가 출처가 달라 같은 날 숫자가 서로 다를 수 있습니다. 신용위험의 흐름은 위 "신용 스프레드" 그래프로 대신 볼 수 있습니다. <b>직접 본 값을 저장소의 <code>data/manual.txt</code> 파일 [cdx_ig] · [cdx_hy] 아래에 한 줄씩 적으면 여기에 그래프가 그려집니다.</b></p>
+          <div class="hidden" id="cds-wrap"><div class="sub">회사채 CDS 지수 (CDX)</div><div class="cw"><canvas id="c-f-cds"></canvas></div></div>
+          <div class="hidden" id="scds-wrap">
+            <div class="sub" id="scds-bar-t">국가 CDS 5년물 · 나라별 최신 값 (bp)</div><div class="cw" id="scds-bar-cw"><canvas id="c-f-scds-bar"></canvas></div>
+            <div id="scds-line-wrap" class="hidden"><div class="sub">국가 CDS 5년물 · 추이 (bp, 로그 축) — 범례의 나라 이름을 누르면 선을 끄고 켤 수 있습니다</div><div class="cw tall"><canvas id="c-f-scds"></canvas></div></div>
+            <div class="note" id="scds-wait"></div>
+          </div>
+          <p class="qnote" style="margin:8px 0 0" id="cds-note">CDS 프리미엄은 장외 거래 시세라서 연준·재무부 같은 공공 기관이 무료로 배포하지 않고, 이 대시보드가 자동으로 받아올 수 있는 공개 데이터가 없습니다. 그래서 그래프 대신 시세를 볼 수 있는 페이지로 연결합니다. 사이트마다 호가 출처가 달라 같은 날 숫자가 서로 다를 수 있습니다. 신용위험의 흐름은 위 "신용 스프레드" 그래프로 대신 볼 수 있습니다. <b>직접 본 값을 바로 아래 "값 직접 입력" 칸에 적으면 여기에 그래프가 그려집니다.</b></p>
+        </div>
+        <div class="panel wide" id="mi-panel">
+          <h3>값 직접 입력</h3>
+          <div class="pd">FINRA 마진 데트 · CDS처럼 자동으로 받을 수 없는 지표를 여기서 적어 넣으면 위 그래프에 바로 찍힙니다</div>
+          <form class="mi" id="mi-form">
+            <label>지표<select id="mi-kind">
+              <option value="margin_debt">FINRA 마진 데트 (월간)</option>
+              <option value="cdx_ig">CDX 투자등급 (bp)</option>
+              <option value="cdx_hy">CDX 하이일드 (bp)</option>
+              <option value="cds_">국가 CDS 5년물 (bp)</option>
+            </select></label>
+            <label class="hidden" id="mi-country-l">나라<input id="mi-country" list="mi-countries" placeholder="예: 미국" autocomplete="off"><datalist id="mi-countries"></datalist></label>
+            <label>날짜<input type="date" id="mi-date" required></label>
+            <label>값<input id="mi-val" inputmode="decimal" placeholder="" autocomplete="off" required></label>
+            <button class="btn-primary" id="mi-save" type="submit">저장</button>
+          </form>
+          <div class="mi-hint" id="mi-hint"></div>
+          <div class="status" id="mi-status" style="text-align:left;margin-top:8px"></div>
+          <div class="mi-store">
+            <span id="mi-store"></span>
+            <button class="btn-sm hidden" id="mi-connect" type="button">GitHub 저장소에 저장하도록 연결</button>
+            <button class="btn-sm hidden" id="mi-disconnect" type="button">연결 해제</button>
+            <a class="btn-sm hidden" id="mi-edit" target="_blank" rel="noopener">입력 파일 열기 ↗</a>
+          </div>
+          <div class="mi hidden" id="mi-token-row">
+            <label style="flex:1 1 320px">GitHub 토큰<input id="mi-token" type="password" placeholder="github_pat_..." autocomplete="off"></label>
+            <button class="btn-sm" id="mi-token-save" type="button">연결</button>
+          </div>
+          <details class="mi-how hidden" id="mi-how"><summary>토큰은 어떻게 만드나요?</summary>
+            <ol>
+              <li>GitHub 오른쪽 위 프로필 사진 → <b>Settings</b> → 왼쪽 맨 아래 <b>Developer settings</b></li>
+              <li><b>Personal access tokens → Fine-grained tokens → Generate new token</b></li>
+              <li>Repository access에서 <b>Only select repositories</b>를 고르고 이 대시보드 저장소 하나만 선택</li>
+              <li>Permissions → Repository permissions → <b>Contents</b>를 <b>Read and write</b>로</li>
+              <li><b>Generate token</b>을 눌러 나온 값을 위 칸에 붙여 넣고 "연결"</li>
+            </ol>
+            <p>토큰은 이 브라우저에만 저장되고 사이트 파일에는 들어가지 않습니다. 다른 사람은 사이트를 볼 수는 있어도 값을 고칠 수 없습니다. 채팅이나 다른 곳에는 붙여 넣지 마세요.</p>
+          </details>
         </div>
       </div>
       <div class="src" id="fred-src"></div>
@@ -928,9 +980,14 @@ function dataUrls(file) {
 const fredUrls = () => dataUrls("fred.json");
 /* 직접 입력 파일 data/manual.txt : [지표이름] 아래에 "날짜 값" 한 줄씩. 쉼표 섞인 숫자도 받는다 */
 function parseManual(txt) {
-  const out = {}; let sec = null;
+  const out = {}; let sec = null, day = null;
   txt.split(/\r?\n/).forEach((raw) => { const line = raw.trim(); if (!line || line.startsWith("#")) return;
-    const h = line.match(/^\[(.+)\]$/); if (h) { sec = h[1].trim().toLowerCase(); out[sec] = out[sec] || new Map(); return; }
+    const h = line.match(/^\[(.+)\]$/);
+    if (h) { sec = h[1].trim().toLowerCase(); const bd = sec.match(/^cds\s+(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/);
+      day = bd ? `${bd[1]}-${pad(+bd[2])}-${pad(+bd[3])}` : null; if (!day) out[sec] = out[sec] || new Map(); return; }
+    if (day) { // [cds 날짜] 묶음 안: "나라이름 값"
+      const c = line.match(/^(.+?)[\s,;:]+([\d.,]+)$/), cv = c && parseFloat(c[2].replace(/,/g, "")); if (!c || isNaN(cv)) return;
+      const key = "cds_" + c[1].trim().toLowerCase().replace(/\s+/g, "_"); (out[key] = out[key] || new Map()).set(day, cv); return; }
     const m = sec && line.match(/^(\d{4})[-./](\d{1,2})(?:[-./](\d{1,2}))?[\s,;:]+(.+)$/); if (!m) return;
     const v = parseFloat(m[4].replace(/[,$\s]/g, "")); if (isNaN(v)) return;
     const y = +m[1], mo = +m[2], d = m[3] ? +m[3] : new Date(y, mo, 0).getDate(); // 월만 적으면 그 달 말일로
@@ -938,10 +995,93 @@ function parseManual(txt) {
   Object.keys(out).forEach((k) => (out[k] = [...out[k]].sort((a, b) => a[0].localeCompare(b[0]))));
   return out;
 }
-async function loadManual() {
-  for (const u of dataUrls("manual.txt")) { try { const r = await fetch(u); if (!r.ok) continue; const t = await r.text(); if (/^\s*</.test(t)) continue; S.manual = parseManual(t); return; } catch (e) {} }
-  S.manual = {};
+/* 직접 입력값의 저장 위치
+   1) 기본: 이 브라우저(localStorage)에만 저장
+   2) GitHub 토큰을 연결하면: 저장소의 data/manual.txt 에 기록 → 모든 기기에서 보임. 토큰은 이 브라우저에만 둔다. */
+const GH = (() => { const h = location.hostname, seg = location.pathname.split("/").filter(Boolean)[0];
+  return h.endsWith(".github.io") && seg && !seg.includes(".") ? { owner: h.split(".")[0], repo: seg } : null; })();
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
+const ghToken = () => (GH ? store.get("tad-gh-token", "") : "");
+const localLines = () => store.get("tad-manual-local", []); // [{sec, line}]
+const b64e = (t) => { let bin = ""; new TextEncoder().encode(t).forEach((x) => (bin += String.fromCharCode(x))); return btoa(bin); };
+const b64d = (b) => new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g, "")), (ch) => ch.charCodeAt(0)));
+async function ghFile(method, body) {
+  const r = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/data/manual.txt` + (method === "GET" ? "?t=" + Date.now() : ""),
+    { method, headers: { Authorization: "Bearer " + ghToken(), Accept: "application/vnd.github+json" }, body: body ? JSON.stringify(body) : undefined });
+  if (method === "GET" && r.status === 404) return { text: "", sha: null };
+  if (!r.ok) { const e = new Error("HTTP " + r.status); e.status = r.status; throw e; }
+  const j = await r.json(); return method === "GET" ? { text: b64d(j.content || ""), sha: j.sha } : j;
 }
+// [칸] 의 맨 끝에 한 줄을 넣는다 (같은 날짜는 아래쪽 값이 쓰이므로 끝에 넣어야 새 값이 이긴다). 칸이 없으면 새로 만든다.
+function insertLine(text, sec, line) {
+  const L = text.replace(/\s+$/, "").split(/\r?\n/), head = L.findIndex((x) => x.trim().toLowerCase() === `[${sec}]`);
+  if (head < 0) return (text.trim() ? L.join("\n") + "\n\n" : "# 대시보드에서 직접 입력한 값\n\n") + `[${sec}]\n${line}\n`;
+  let end = L.length; for (let i = head + 1; i < L.length; i++) if (/^\s*\[.+\]\s*$/.test(L[i])) { end = i; break; }
+  while (end > head + 1 && !L[end - 1].trim()) end--;
+  L.splice(end, 0, line); return L.join("\n") + "\n";
+}
+function rebuildManual() { S.manual = parseManual((S.manualText || "") + "\n" + localLines().map((x) => `[${x.sec}]\n${x.line}`).join("\n")); }
+async function loadManual() {
+  S.manualText = "";
+  if (ghToken()) { try { S.manualText = (await ghFile("GET")).text; return rebuildManual(); } catch (e) {} }
+  for (const u of dataUrls("manual.txt")) { try { const r = await fetch(u); if (!r.ok) continue; const t = await r.text(); if (/^\s*</.test(t)) continue; S.manualText = t; break; } catch (e) {} }
+  rebuildManual();
+}
+async function saveEntry(sec, line) {
+  if (!ghToken()) { // 브라우저에만 저장
+    if (!store.set("tad-manual-local", localLines().concat([{ sec, line }]))) throw new Error("이 브라우저가 저장을 허용하지 않습니다");
+    rebuildManual(); return "local";
+  }
+  for (let attempt = 0; ; attempt++) { // 저장소에 기록 (그동안 브라우저에만 있던 값도 함께 올린다)
+    try {
+      const cur = await ghFile("GET"); let text = cur.text;
+      localLines().concat([{ sec, line }]).forEach((x) => (text = insertLine(text, x.sec, x.line)));
+      await ghFile("PUT", Object.assign({ message: `Add ${sec} ${line}`, content: b64e(text) }, cur.sha ? { sha: cur.sha } : {}));
+      store.del("tad-manual-local"); S.manualText = text; rebuildManual(); return "repo";
+    } catch (e) { if (e.status === 409 && attempt < 1) continue; throw e; }
+  }
+}
+function miRefresh() {
+  const kind = $("mi-kind").value, tok = ghToken(), n = localLines().length;
+  $("mi-country-l").classList.toggle("hidden", kind !== "cds_");
+  $("mi-val").placeholder = kind === "margin_debt" ? "예: 1,183,654" : "예: 52.3";
+  $("mi-hint").textContent = kind === "margin_debt" ? "FINRA 표의 \"Debit Balances in Customers' Securities Margin Accounts\" 숫자를 쉼표까지 그대로 적으면 됩니다(백만 달러). 날짜는 그 달의 아무 날이나 고르면 월 단위로 저장됩니다."
+    : "값은 bp 단위로 적습니다. 같은 날짜에 다시 저장하면 새 값으로 바뀝니다.";
+  $("mi-countries").innerHTML = Object.keys(S.manual || {}).filter((k) => k.startsWith("cds_")).map((k) => `<option value="${esc(k.slice(4).replace(/_/g, " "))}">`).join("");
+  $("mi-store").textContent = tok ? "저장 위치: GitHub 저장소 (모든 기기에서 보입니다)" : "저장 위치: 이 브라우저에만" + (n ? ` (${n}건)` : "") + " — 다른 기기나 다른 브라우저에서는 보이지 않습니다.";
+  $("mi-connect").classList.toggle("hidden", !!tok || !GH); $("mi-disconnect").classList.toggle("hidden", !tok);
+  $("mi-edit").classList.toggle("hidden", !GH); if (GH) $("mi-edit").href = `https://github.com/${GH.owner}/${GH.repo}/blob/HEAD/data/manual.txt`;
+}
+$("mi-kind").addEventListener("change", miRefresh);
+$("mi-connect").addEventListener("click", () => { $("mi-token-row").classList.toggle("hidden"); $("mi-how").classList.toggle("hidden"); });
+$("mi-token-save").addEventListener("click", () => { const t = $("mi-token").value.trim(); if (!t) return setStatus("mi-status", "토큰을 붙여 넣어 주세요.", true);
+  if (!store.set("tad-gh-token", t)) return setStatus("mi-status", "이 브라우저가 저장을 허용하지 않습니다.", true);
+  $("mi-token").value = ""; $("mi-token-row").classList.add("hidden"); $("mi-how").classList.add("hidden");
+  setStatus("mi-status", "연결했습니다. 다음 저장부터 저장소에 기록됩니다" + (localLines().length ? " (브라우저에 있던 값도 그때 함께 올라갑니다)." : ".")); miRefresh(); });
+$("mi-disconnect").addEventListener("click", () => { store.del("tad-gh-token"); setStatus("mi-status", "연결을 해제했습니다. 이 브라우저에서 토큰을 지웠습니다."); miRefresh(); });
+$("mi-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const kind = $("mi-kind").value, d = $("mi-date").value, raw = $("mi-val").value.trim(), v = parseFloat(raw.replace(/[,$\s]/g, ""));
+  if (!d) return setStatus("mi-status", "날짜를 골라 주세요.", true);
+  if (isNaN(v) || v < 0) return setStatus("mi-status", "값에는 숫자를 적어 주세요.", true);
+  let sec = kind;
+  if (kind === "cds_") { const c = $("mi-country").value.trim().toLowerCase().replace(/[\[\]#]/g, "").replace(/\s+/g, "_"); if (!c) return setStatus("mi-status", "나라 이름을 적어 주세요.", true); sec = "cds_" + c; }
+  const line = (kind === "margin_debt" ? d.slice(0, 7) : d) + " " + v;
+  $("mi-save").disabled = true; setStatus("mi-status", "저장하는 중…");
+  try {
+    const where = await saveEntry(sec, line);
+    setStatus("mi-status", `저장했습니다: ${line}` + (where === "repo" ? " · 저장소에 기록됨" : " · 이 브라우저에 저장됨")); $("mi-val").value = "";
+    if (S.fred) renderFred();
+  } catch (err) {
+    const why = err.status === 401 ? "토큰이 맞지 않거나 만료됐습니다. 연결을 해제하고 새 토큰으로 다시 연결해 주세요."
+      : err.status === 403 || err.status === 404 ? "토큰에 이 저장소의 쓰기 권한이 없습니다. Contents 권한을 Read and write로 만든 토큰인지 확인해 주세요."
+      : err instanceof TypeError ? "GitHub에 연결하지 못했습니다. 네트워크를 확인해 주세요." : err.message;
+    setStatus("mi-status", "⚠ 저장하지 못했습니다. " + why, true);
+  } finally { $("mi-save").disabled = false; miRefresh(); }
+});
+$("mi-date").value = iso(new Date());
+
 async function loadFred() {
   S.fredBusy = true; setStatus("fred-status", "FRED 지표 불러오는 중…");
   await loadManual();
@@ -984,7 +1124,7 @@ function renderFred() {
   draw("c-f-tga", [{ label: "TGA (주간 평균)", data: obs("WTREGEN"), color: c.gold, extra: { fill: true } }, { label: "ON RRP", data: obs("RRPONTSYD"), color: c.green }], { y: { beginAtZero: true, ticks: tB } });
   draw("c-f-si", [{ label: "SOFR − IORB (bp)", data: si, bar: true }], { y: { ticks: { callback: bp } }, noLegend: true });
   draw("c-f-mmf", [{ label: "MMF 총자산", data: obs("MMMFFAQ027S", "0000"), color: c.pink, extra: { fill: true, pointRadius: 3 } }], { y: { ticks: tB }, noLegend: true });
-  const M = S.manual || {};
+  const M = S.manual || {}; miRefresh();
   // FRED 분기 자료는 분기 첫날로 표기되므로 분기 말일로 옮겨 월간 자료와 같은 축에 놓는다
   const qEnd = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7) + 2; return `${y}-${pad(m)}-${pad(new Date(y, m, 0).getDate())}`; };
   const mg = obs("BOGZ1FL663067003Q", "0000").map((o) => [qEnd(o[0]), o[1]]);
@@ -997,8 +1137,8 @@ function renderFred() {
   const tail = (arr, back, unit) => { const l = arr[arr.length - 1], p = arr[arr.length - 1 - back]; return `최신 ${l[0].slice(0, 7)} ${usd(l[1] * 1e9)}` + (p ? ` · ${unit} ${l[1] >= p[1] ? "+" : "−"}${Math.abs((l[1] / p[1] - 1) * 100).toFixed(0)}%` : ""); };
   $("f-margin-desc").textContent = fin.length ? `월간 · $B · FINRA 발표 (직접 입력 ${fin.length}개월) · ${tail(fin, 12, "1년 전 대비")}` : mg.length ? `분기 · $B · 연준 자금순환표 Z.1 · ${tail(mg, 4, "1년 전 대비")}` : "데이터 없음 · 자동 갱신을 한 번 더 실행하면 표시됩니다";
   $("f-margin-note").innerHTML = fin.length
-    ? "\"FINRA 마진 데트\" 선은 저장소의 <code>data/manual.txt</code> 파일 [margin_debt] 아래에 적어 넣은 월간 값입니다. \"증권사 마진 대출\" 선은 연준 자금순환표의 분기 자료로, 집계 범위가 달라 금액이 더 작고 몇 달 늦게 나옵니다."
-    : "지금 보이는 선은 FRED에 있는 <b>분기</b> 자료라 최신 값이 몇 달 늦고, 뉴스에 나오는 FINRA 월간 마진 데트보다 금액이 작습니다. FINRA 페이지(오른쪽 위 버튼)에서 본 월간 값을 저장소의 <code>data/manual.txt</code> 파일 [margin_debt] 아래에 <b>한 줄씩 적으면 여기에 월간 그래프가 함께 그려집니다.</b>";
+    ? "\"FINRA 마진 데트\" 선은 아래 \"값 직접 입력\" 칸에서 적어 넣은 월간 값입니다. \"증권사 마진 대출\" 선은 연준 자금순환표의 분기 자료로, 집계 범위가 달라 금액이 더 작고 몇 달 늦게 나옵니다."
+    : "지금 보이는 선은 FRED에 있는 <b>분기</b> 자료라 최신 값이 몇 달 늦고, 뉴스에 나오는 FINRA 월간 마진 데트보다 금액이 작습니다. FINRA 페이지(오른쪽 위 버튼)에서 본 월간 값을 <b>아래 \"값 직접 입력\" 칸에 적으면 여기에 월간 그래프가 함께 그려집니다.</b>";
   // CDS 지수: 직접 입력값이 있으면 그래프를 그린다
   const pick = (arr) => { const r = (arr || []).filter((o) => o[0] >= cut); return r.length >= 2 ? r : arr || []; };
   const ig = pick(M.cdx_ig), hy = pick(M.cdx_hy), hasCds = ig.length + hy.length > 0;
@@ -1009,7 +1149,30 @@ function renderFred() {
     draw("c-f-cds", cs, { y: { ticks: { callback: bp }, title: { display: true, text: ig.length ? "투자등급" : "하이일드" } }, y2: ig.length && hy.length ? { ticks: { callback: bp }, title: { display: true, text: "하이일드" } } : undefined });
     const lg = (M.cdx_ig || []).slice(-1)[0], lh = (M.cdx_hy || []).slice(-1)[0];
     $("cds-desc").textContent = "회사채 CDS 지수(CDX) · 직접 입력" + (lg ? ` · 투자등급 ${lg[1]}bp (${lg[0]})` : "") + (lh ? ` · 하이일드 ${lh[1]}bp (${lh[0]})` : "");
-    $("cds-note").innerHTML = "저장소의 <code>data/manual.txt</code> 파일 [cdx_ig] · [cdx_hy] 아래에 적어 넣은 값입니다. 새 값을 한 줄 추가하면 몇 분 뒤 그래프에 반영됩니다.";
+  }
+  // 국가 CDS: manual.txt 에 [cds_나라이름] 칸을 만들면 나라마다 선 하나씩 자동으로 그린다
+  const hue = (i, n) => { const h = (i * 360) / n, f = (k) => { const x = (k + h / 30) % 12, v = 0.62 - 0.22 * Math.max(-1, Math.min(x - 3, 9 - x, 1)); return Math.round(v * 255).toString(16).padStart(2, "0"); }; return "#" + f(0) + f(8) + f(4); };
+  const names = Object.keys(M).filter((k) => k.startsWith("cds_") && M[k].length);
+  const sov = names.map((k, i) => ({ key: k, label: k.slice(4).replace(/_/g, " ").toUpperCase(), all: M[k], data: pick(M[k]), color: names.length <= 6 ? [c.accent, c.green, c.gold, c.violet, c.pink, c.red][i] : hue(i, names.length), extra: { pointRadius: 3 } }));
+  $("scds-wrap").classList.toggle("hidden", !sov.length);
+  if (sov.length) {
+    // 나라별 최신 값 막대 (높은 순)
+    const rank = sov.map((x) => ({ label: x.label, d: x.all[x.all.length - 1][0], v: x.all[x.all.length - 1][1], color: x.color })).sort((p, q) => q.v - p.v);
+    $("scds-bar-cw").style.height = Math.max(160, rank.length * 24 + 50) + "px";
+    mk("c-f-scds-bar", { type: "bar", data: { labels: rank.map((r) => r.label), datasets: [{ label: "CDS (bp)", data: rank.map((r) => r.v), backgroundColor: rank.map((r) => alpha(r.color, 0.8)), borderRadius: 3 }] },
+      options: { indexAxis: "y", plugins: { legend: { display: false }, tooltip: { callbacks: { label: (x) => `${x.raw}bp · ${rank[x.dataIndex].d}` } } },
+        scales: { x: { grid: { color: css("--border") }, ticks: { autoSkip: true, maxRotation: 0, callback: (v) => v + "bp", color: css("--muted") } }, y: { grid: { display: false }, ticks: { autoSkip: false, color: css("--text"), font: { size: 12 } } } } } });
+    const days = new Set(sov.flatMap((x) => x.all.map((o) => o[0]))), multi = sov.some((x) => x.all.length >= 2);
+    $("scds-line-wrap").classList.toggle("hidden", !multi);
+    if (multi) draw("c-f-scds", sov, { y: { type: "logarithmic", ticks: { callback: (v) => ([1, 2, 5].includes(+String(v)[0]) ? v + "bp" : "") } } });
+    $("scds-wait").textContent = multi ? "" : "추이 그래프는 같은 나라의 값이 이틀 치 이상 쌓이면 나타납니다.";
+    $("scds-bar-t").textContent = `국가 CDS 5년물 · 나라별 최신 값 (bp) · ${sov.length}개국 · 입력된 날짜 ${days.size}일`;
+  }
+  if (hasCds || sov.length) {
+    const lastS = sov.length > 4 ? [`국가 CDS ${sov.length}개국`] : sov.map((x) => { const l = x.all[x.all.length - 1]; return `${x.label} ${l[1]}bp`; });
+    if (!hasCds) $("cds-desc").textContent = "국가 CDS 5년물 · 직접 입력 · " + lastS.join(" · ");
+    else if (sov.length) $("cds-desc").textContent += " · " + lastS.join(" · ");
+    $("cds-note").innerHTML = "아래 \"값 직접 입력\" 칸에서 적어 넣은 값입니다. 국가 CDS는 새 나라 이름으로 저장하면 선이 하나씩 늘어납니다.";
   }
   draw("c-f-ust", [{ label: "2년", data: obs("DGS2"), color: c.accent }, { label: "10년", data: obs("DGS10"), color: c.violet }, { label: "30년", data: obs("DGS30"), color: c.green }], { y: { ticks: tP } });
   draw("c-f-curve", [{ label: "10년 − 2년", data: obs("T10Y2Y"), color: c.violet, extra: { fill: true } }, { label: "10년 − 3개월", data: obs("T10Y3M"), color: c.gold }], { y: { ticks: { callback: (v) => v.toFixed(2) + "%p" } } });
