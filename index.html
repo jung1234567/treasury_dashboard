@@ -134,6 +134,8 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .day .up{font-size:11px;color:var(--gold)}
 .day .qra{font-size:11px;font-weight:700;color:var(--pink)}
 .qnote{font-size:13px;color:var(--muted);margin-bottom:8px}
+.qnote b,.qnote code{color:var(--text)}
+code{font-family:"JetBrains Mono",monospace;font-size:.92em}
 .qlinks{list-style:none;display:grid;gap:6px;font-size:14px}
 .bar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:auto;gap:1px}
 .bar i{display:block;height:100%}
@@ -334,6 +336,7 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
         <li><span class="dot" style="background:var(--red)"></span><b>SOFR − IORB ↑</b> — 리포금리가 연준이 지급준비금에 주는 이자보다 높아짐. 지급준비금이 "넉넉"에서 "빠듯"으로 넘어가는 대표 신호. 하루 튄 것보다 플러스가 며칠씩 이어지는지가 중요합니다</li>
         <li><span class="dot" style="background:var(--violet)"></span><b>장단기 금리차 ↓ (역전)</b> — 시장이 앞으로 금리 인하·경기 둔화를 예상. 다시 벌어지는 구간도 함께 봅니다</li>
         <li><span class="dot" style="background:var(--gold)"></span><b>하이일드 스프레드 ↑</b> — 신용도가 낮은 기업이 국채보다 훨씬 비싸게 빌림. 위험 회피 심리가 커졌다는 뜻</li>
+        <li><span class="dot" style="background:var(--gold)"></span><b>마진 데트 ↑</b> — 빚을 내서 주식을 사는 돈이 늘어남. 위험 선호가 강하다는 뜻이고, 급하게 줄어들 때는 강제 청산(디레버리징)이 진행 중일 수 있습니다</li>
         <li><span class="dot" style="background:var(--accent)"></span><b>SOFR</b> — 미 국채를 담보로 한 하루짜리 리포 거래의 대표 금리. 시중에 현금이 부족해지면 오릅니다. TGCR·BGCR은 SOFR보다 범위가 좁은 리포금리입니다</li>
         <li><span class="dot" style="background:var(--violet)"></span><b>EFFR</b> — 은행끼리 담보 없이 하루 빌리는 연방기금금리. 연준 목표 범위 안에서 움직입니다</li>
         <li><span class="dot" style="background:var(--red)"></span><b>SOFR − EFFR ↑</b> — 담보를 주고도 더 비싸게 빌린다는 뜻. 국채 결제가 몰리는 날, 분기말·월말, TGA가 빠르게 늘 때 자주 벌어집니다</li>
@@ -360,16 +363,25 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
         <div class="panel"><h3>MMF 총자산</h3><div class="pd">분기 · $B · 연준 자금순환표(Z.1) 기준이라 몇 달 늦습니다</div><div class="cw"><canvas id="c-f-mmf"></canvas></div></div>
         <div class="panel"><h3>미국 국채 금리</h3><div class="pd">2년 · 10년 · 30년 (%)</div><div class="cw"><canvas id="c-f-ust"></canvas></div></div>
         <div class="panel"><h3>장단기 금리차</h3><div class="pd">10년 − 2년, 10년 − 3개월 (%p) · 0 아래 = 역전</div><div class="cw"><canvas id="c-f-curve"></canvas></div></div>
+        <div class="panel wide">
+          <div class="head" style="margin-bottom:6px">
+            <div><h3>마진 데트 (증권사 신용융자)</h3><div class="pd" style="margin:0" id="f-margin-desc"></div></div>
+            <a class="btn-sm" href="https://www.finra.org/rules-guidance/key-topics/margin-accounts/margin-statistics" target="_blank" rel="noopener">FINRA 월간 마진 통계 ↗</a>
+          </div>
+          <div class="cw"><canvas id="c-f-margin"></canvas></div>
+          <div class="note" id="f-margin-note"></div>
+        </div>
         <div class="panel wide"><h3>신용 스프레드</h3><div class="pd">하이일드 · 투자등급 회사채 OAS (%) · 국채 대비 회사채 가산금리</div><div class="cw tall"><canvas id="c-f-credit"></canvas></div></div>
         <div class="panel wide">
           <div class="head" style="margin-bottom:6px">
-            <div><h3>CDS 프리미엄</h3><div class="pd" style="margin:0">미국 5년물 국가 CDS · 회사채 CDS 지수(CDX)</div></div>
+            <div><h3>CDS 프리미엄</h3><div class="pd" style="margin:0" id="cds-desc">회사채 CDS 지수(CDX) · 직접 입력</div></div>
             <div class="tools">
               <a class="btn-sm" href="https://en.macromicro.me/cds" target="_blank" rel="noopener">MacroMicro 국가별 CDS ↗</a>
               <a class="btn-sm" href="https://www.investing.com/rates-bonds/world-cds" target="_blank" rel="noopener">Investing.com 세계 CDS ↗</a>
             </div>
           </div>
-          <p class="qnote" style="margin:0">CDS 프리미엄은 장외 거래 시세라서 연준·재무부 같은 공공 기관이 무료로 배포하지 않고, 이 대시보드가 자동으로 받아올 수 있는 공개 데이터가 없습니다. 그래서 그래프 대신 시세를 볼 수 있는 페이지로 연결합니다. 사이트마다 호가 출처가 달라 같은 날 숫자가 서로 다를 수 있습니다. 신용위험의 흐름은 위 "신용 스프레드" 그래프로 대신 볼 수 있습니다.</p>
+          <div class="cw hidden" id="cds-wrap"><canvas id="c-f-cds"></canvas></div>
+          <p class="qnote" style="margin:8px 0 0" id="cds-note">CDS 프리미엄은 장외 거래 시세라서 연준·재무부 같은 공공 기관이 무료로 배포하지 않고, 이 대시보드가 자동으로 받아올 수 있는 공개 데이터가 없습니다. 그래서 그래프 대신 시세를 볼 수 있는 페이지로 연결합니다. 사이트마다 호가 출처가 달라 같은 날 숫자가 서로 다를 수 있습니다. 신용위험의 흐름은 위 "신용 스프레드" 그래프로 대신 볼 수 있습니다. <b>직접 본 값을 저장소의 <code>data/manual.txt</code> 파일 [cdx_ig] · [cdx_hy] 아래에 한 줄씩 적으면 여기에 그래프가 그려집니다.</b></p>
         </div>
       </div>
       <div class="src" id="fred-src"></div>
@@ -907,14 +919,32 @@ $("liq-quick").addEventListener("click", (e) => { const b = e.target.closest("[d
 
 /* ───── 유동성: FRED 지표 (GitHub Actions가 하루 2번 data/fred.json 으로 저장해 둔 파일을 읽는다) ─────
    FRED API는 웹페이지에서 직접 호출할 수 없고 키도 노출되면 안 되므로, 키는 저장소 secret에만 둔다. */
-function fredUrls() {
+function dataUrls(file) {
   const h = location.hostname, seg = location.pathname.split("/").filter(Boolean)[0], u = [];
-  if (h.endsWith(".github.io") && seg && !seg.includes(".")) u.push(`https://raw.githubusercontent.com/${h.split(".")[0]}/${seg}/main/data/fred.json`);
-  u.push("data/fred.json?t=" + Date.now());
+  if (h.endsWith(".github.io") && seg && !seg.includes(".")) u.push(`https://raw.githubusercontent.com/${h.split(".")[0]}/${seg}/main/data/${file}`);
+  u.push(`data/${file}?t=` + Date.now());
   return u;
+}
+const fredUrls = () => dataUrls("fred.json");
+/* 직접 입력 파일 data/manual.txt : [지표이름] 아래에 "날짜 값" 한 줄씩. 쉼표 섞인 숫자도 받는다 */
+function parseManual(txt) {
+  const out = {}; let sec = null;
+  txt.split(/\r?\n/).forEach((raw) => { const line = raw.trim(); if (!line || line.startsWith("#")) return;
+    const h = line.match(/^\[(.+)\]$/); if (h) { sec = h[1].trim().toLowerCase(); out[sec] = out[sec] || new Map(); return; }
+    const m = sec && line.match(/^(\d{4})[-./](\d{1,2})(?:[-./](\d{1,2}))?[\s,;:]+(.+)$/); if (!m) return;
+    const v = parseFloat(m[4].replace(/[,$\s]/g, "")); if (isNaN(v)) return;
+    const y = +m[1], mo = +m[2], d = m[3] ? +m[3] : new Date(y, mo, 0).getDate(); // 월만 적으면 그 달 말일로
+    out[sec].set(`${y}-${pad(mo)}-${pad(d)}`, v); });
+  Object.keys(out).forEach((k) => (out[k] = [...out[k]].sort((a, b) => a[0].localeCompare(b[0]))));
+  return out;
+}
+async function loadManual() {
+  for (const u of dataUrls("manual.txt")) { try { const r = await fetch(u); if (!r.ok) continue; const t = await r.text(); if (/^\s*</.test(t)) continue; S.manual = parseManual(t); return; } catch (e) {} }
+  S.manual = {};
 }
 async function loadFred() {
   S.fredBusy = true; setStatus("fred-status", "FRED 지표 불러오는 중…");
+  await loadManual();
   let best = null;
   for (const u of fredUrls()) { try { const j = await getJSON(u); if (j && j.series && (!best || (j.updated || "") > (best.updated || ""))) best = j; } catch (e) {} }
   S.fredBusy = false;
@@ -954,6 +984,33 @@ function renderFred() {
   draw("c-f-tga", [{ label: "TGA (주간 평균)", data: obs("WTREGEN"), color: c.gold, extra: { fill: true } }, { label: "ON RRP", data: obs("RRPONTSYD"), color: c.green }], { y: { beginAtZero: true, ticks: tB } });
   draw("c-f-si", [{ label: "SOFR − IORB (bp)", data: si, bar: true }], { y: { ticks: { callback: bp } }, noLegend: true });
   draw("c-f-mmf", [{ label: "MMF 총자산", data: obs("MMMFFAQ027S", "0000"), color: c.pink, extra: { fill: true, pointRadius: 3 } }], { y: { ticks: tB }, noLegend: true });
+  const M = S.manual || {};
+  // FRED 분기 자료는 분기 첫날로 표기되므로 분기 말일로 옮겨 월간 자료와 같은 축에 놓는다
+  const qEnd = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7) + 2; return `${y}-${pad(m)}-${pad(new Date(y, m, 0).getDate())}`; };
+  const mg = obs("BOGZ1FL663067003Q", "0000").map((o) => [qEnd(o[0]), o[1]]);
+  // 직접 입력값 단위 맞추기($B): 백만 달러로 적었으면 /1000, 조 단위로 적었으면 ×1000
+  const fin = (M.margin_debt || []).map((o) => [o[0], +(o[1] >= 50000 ? o[1] / 1000 : o[1] < 50 ? o[1] * 1000 : o[1]).toFixed(2)]);
+  const sets = [];
+  if (fin.length) sets.push({ label: "FINRA 마진 데트 (월간 · 직접 입력)", data: fin, color: c.gold, extra: { fill: true, pointRadius: 3 } });
+  if (mg.length) sets.push({ label: "증권사 마진 대출 (분기 · 연준 Z.1)", data: mg, color: fin.length ? c.violet : c.gold, extra: { fill: !fin.length, pointRadius: 3 } });
+  draw("c-f-margin", sets, { y: { ticks: tB }, noLegend: sets.length < 2 });
+  const tail = (arr, back, unit) => { const l = arr[arr.length - 1], p = arr[arr.length - 1 - back]; return `최신 ${l[0].slice(0, 7)} ${usd(l[1] * 1e9)}` + (p ? ` · ${unit} ${l[1] >= p[1] ? "+" : "−"}${Math.abs((l[1] / p[1] - 1) * 100).toFixed(0)}%` : ""); };
+  $("f-margin-desc").textContent = fin.length ? `월간 · $B · FINRA 발표 (직접 입력 ${fin.length}개월) · ${tail(fin, 12, "1년 전 대비")}` : mg.length ? `분기 · $B · 연준 자금순환표 Z.1 · ${tail(mg, 4, "1년 전 대비")}` : "데이터 없음 · 자동 갱신을 한 번 더 실행하면 표시됩니다";
+  $("f-margin-note").innerHTML = fin.length
+    ? "\"FINRA 마진 데트\" 선은 저장소의 <code>data/manual.txt</code> 파일 [margin_debt] 아래에 적어 넣은 월간 값입니다. \"증권사 마진 대출\" 선은 연준 자금순환표의 분기 자료로, 집계 범위가 달라 금액이 더 작고 몇 달 늦게 나옵니다."
+    : "지금 보이는 선은 FRED에 있는 <b>분기</b> 자료라 최신 값이 몇 달 늦고, 뉴스에 나오는 FINRA 월간 마진 데트보다 금액이 작습니다. FINRA 페이지(오른쪽 위 버튼)에서 본 월간 값을 저장소의 <code>data/manual.txt</code> 파일 [margin_debt] 아래에 <b>한 줄씩 적으면 여기에 월간 그래프가 함께 그려집니다.</b>";
+  // CDS 지수: 직접 입력값이 있으면 그래프를 그린다
+  const pick = (arr) => { const r = (arr || []).filter((o) => o[0] >= cut); return r.length >= 2 ? r : arr || []; };
+  const ig = pick(M.cdx_ig), hy = pick(M.cdx_hy), hasCds = ig.length + hy.length > 0;
+  $("cds-wrap").classList.toggle("hidden", !hasCds);
+  if (hasCds) {
+    const cs = []; if (ig.length) cs.push({ label: "CDX 투자등급 (bp)", data: ig, color: c.accent, extra: { pointRadius: 3 } });
+    if (hy.length) cs.push({ label: "CDX 하이일드 (bp)", data: hy, color: c.gold, axis: ig.length ? "y2" : "y", extra: { pointRadius: 3 } });
+    draw("c-f-cds", cs, { y: { ticks: { callback: bp }, title: { display: true, text: ig.length ? "투자등급" : "하이일드" } }, y2: ig.length && hy.length ? { ticks: { callback: bp }, title: { display: true, text: "하이일드" } } : undefined });
+    const lg = (M.cdx_ig || []).slice(-1)[0], lh = (M.cdx_hy || []).slice(-1)[0];
+    $("cds-desc").textContent = "회사채 CDS 지수(CDX) · 직접 입력" + (lg ? ` · 투자등급 ${lg[1]}bp (${lg[0]})` : "") + (lh ? ` · 하이일드 ${lh[1]}bp (${lh[0]})` : "");
+    $("cds-note").innerHTML = "저장소의 <code>data/manual.txt</code> 파일 [cdx_ig] · [cdx_hy] 아래에 적어 넣은 값입니다. 새 값을 한 줄 추가하면 몇 분 뒤 그래프에 반영됩니다.";
+  }
   draw("c-f-ust", [{ label: "2년", data: obs("DGS2"), color: c.accent }, { label: "10년", data: obs("DGS10"), color: c.violet }, { label: "30년", data: obs("DGS30"), color: c.green }], { y: { ticks: tP } });
   draw("c-f-curve", [{ label: "10년 − 2년", data: obs("T10Y2Y"), color: c.violet, extra: { fill: true } }, { label: "10년 − 3개월", data: obs("T10Y3M"), color: c.gold }], { y: { ticks: { callback: (v) => v.toFixed(2) + "%p" } } });
   draw("c-f-credit", [{ label: "하이일드 OAS", data: obs("BAMLH0A0HYM2"), color: c.gold }, { label: "투자등급 OAS", data: obs("BAMLC0A0CM"), color: c.accent, axis: "y2" }],
