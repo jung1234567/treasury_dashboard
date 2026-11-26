@@ -108,6 +108,10 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .help[open] summary{margin-bottom:10px}
 .help p{font-size:13px;color:var(--muted);margin:8px 0}
 .help ul{grid-template-columns:1fr}
+.tbl.chk td,.tbl.chk th{white-space:normal;text-align:left;vertical-align:top;padding:8px 6px}
+.tbl.chk td:first-child{color:var(--muted);width:28px}.tbl.chk td:nth-child(2){font-weight:600;min-width:170px}.tbl.chk td:nth-child(3){color:var(--muted)}.tbl.chk td:last-child{min-width:150px}
+.tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.tag.ok{color:var(--green);border-color:var(--green)}.tag.new{color:var(--accent);border-color:var(--accent)}.tag.man{color:var(--gold);border-color:var(--gold)}
 .sec{font-size:15px;margin:26px 0 12px;padding-top:18px;border-top:1px solid var(--border)}
 .src{margin-top:10px;font-size:11px;color:var(--muted)}
 .empty{padding:40px;text-align:center;color:var(--muted)}
@@ -199,6 +203,7 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
       <button class="tab" data-tab="buyback">바이백 분석</button>
       <button class="tab" data-tab="calendar">결제 달력</button>
       <button class="tab" data-tab="liquidity">유동성</button>
+      <button class="tab" data-tab="liquidity2">유동성 2</button>
     </div>
     <button class="theme-btn" data-theme-toggle></button>
   </div>
@@ -419,6 +424,7 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
               <option value="cdx_ig">CDX 투자등급 (bp)</option>
               <option value="cdx_hy">CDX 하이일드 (bp)</option>
               <option value="cds_">국가 CDS 5년물 (bp)</option>
+              <optgroup label="유동성 2" id="mi-l2"></optgroup>
             </select></label>
             <label class="hidden" id="mi-country-l">나라<input id="mi-country" list="mi-countries" placeholder="예: 미국" autocomplete="off"><datalist id="mi-countries"></datalist></label>
             <label>날짜<input type="date" id="mi-date" required></label>
@@ -467,6 +473,39 @@ footer{position:fixed;left:0;right:0;bottom:0;height:30px;display:flex;align-ite
       <div class="panel wide"><h3>ON RRP 잔고 &amp; SRF 이용액</h3><div class="pd">연준 역레포에 맡겨진 현금 ($B, 왼쪽) / 연준 레포 창구 이용액 ($B, 오른쪽) · FRED 일간</div><div class="cw tall"><canvas id="c-rrp"></canvas></div></div>
     </div>
     <div class="src">단기자금시장 상세: Federal Reserve Bank of New York · Markets Data API (Reference Rates, Repo/Reverse Repo Operations)</div>
+  </section>
+
+  <!-- 유동성 2 -->
+  <section id="tab-liquidity2" class="hidden">
+    <div class="head">
+      <div><div class="eyebrow">Funding Stress Checklist</div><h2>유동성 2 · 자금시장 점검표</h2><div class="desc">18개 지표 중 다른 탭에 없는 것들을 여기에 모았습니다</div></div>
+      <div class="quick" id="liq2-quick">
+        <button class="chip" data-d="30">1개월</button><button class="chip on" data-d="90">3개월</button>
+        <button class="chip" data-d="180">6개월</button><button class="chip" data-d="365">1년</button>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">SOFR 75% − 25%</div><div class="v" id="z-pct" style="color:var(--accent)">—</div><div class="s" id="z-pct-s"></div></div>
+      <div class="kpi"><div class="l">은행 예금 (주간 변화)</div><div class="v" id="z-dep">—</div><div class="s" id="z-dep-s"></div></div>
+      <div class="kpi"><div class="l">CP 3개월 − 국채 3개월</div><div class="v" id="z-cp" style="color:var(--gold)">—</div><div class="s" id="z-cp-s"></div></div>
+    </div>
+    <div class="status" id="l2-status"></div>
+    <div class="grid">
+      <div class="panel wide"><h3>8. SOFR 75백분위 − 25백분위 스프레드</h3><div class="pd">bp · 같은 날 리포 거래 금리가 얼마나 흩어져 있는지. 벌어질수록 일부 참가자가 비싸게 빌리고 있다는 뜻 / 선 = 99백분위 − 1백분위 (오른쪽 축)</div><div class="cw tall"><canvas id="c-l2-pct"></canvas></div>
+        <div class="note">평소에는 몇 bp 안에서 움직입니다. 월말·분기말에 하루 벌어지는 것은 흔하고, 평일에도 넓은 상태가 이어지면 담보나 거래 상대에 따라 자금 사정이 갈리고 있다는 신호입니다.</div></div>
+      <div class="panel"><h3>16. 은행 예금 유출입</h3><div class="pd">주간 변화 $B · 미국 상업은행 전체 예금 (연준 H.8) · 음수 = 유출</div><div class="cw"><canvas id="c-l2-dep"></canvas></div></div>
+      <div class="panel"><h3>16. 은행 도매자금 잔액</h3><div class="pd">$B · 거액 정기예금 (연준 H.8) · 예금이 빠질 때 은행이 대신 끌어오는 비싼 자금</div><div class="cw"><canvas id="c-l2-ltd"></canvas></div></div>
+      <div class="panel wide"><h3>16. 도매자금 조달비용</h3><div class="pd">bp · 금융 CP 3개월 금리 − 국채 3개월 금리 · 은행·금융사가 무담보로 빌릴 때 국채보다 얼마나 더 내는지</div><div class="cw"><canvas id="c-l2-fund"></canvas></div></div>
+    </div>
+    <div class="src" id="l2-src"></div>
+
+    <h3 class="sec">18개 지표 점검표</h3>
+    <div class="panel"><div style="overflow-x:auto"><table class="tbl chk" id="l2-list"></table></div></div>
+
+    <h3 class="sec">직접 입력 지표</h3>
+    <p class="qnote">아래 지표들은 공공 기관이 무료로 배포하는 일별 데이터가 없어 자동으로 받을 수 없습니다. 유동성 탭의 "값 직접 입력" 칸이나 <code>data/manual.txt</code>에 값을 적으면 여기에 그래프가 생깁니다.</p>
+    <div class="grid" id="l2-manual"></div>
+    <div class="empty hidden" id="l2-manual-empty">아직 입력된 값이 없습니다.</div>
   </section>
 </main>
 
@@ -522,6 +561,7 @@ function applyTheme(t) {
   if (S.tga) renderTGA();
   if (S.liq) renderLiq();
   if (S.fred) renderFred();
+  renderLiq2();
 }
 document.querySelectorAll("[data-theme-toggle]").forEach((b) => b.addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark")));
 
@@ -637,8 +677,8 @@ function switchTab(t) {
   if (t === "home") { $("dash").classList.add("hidden"); $("start").classList.remove("hidden"); $("back").classList.toggle("hidden", !S.rows.length); window.scrollTo(0, 0); return; }
   S.tab = t;
   document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
-  ["auction", "buyback", "calendar", "liquidity"].forEach((x) => $("tab-" + x).classList.toggle("hidden", x !== t));
-  if (t === "liquidity") { if (!S.fred && !S.fredBusy) loadFred(); if (!S.liq && !S.liqBusy) loadLiq(S.liqDays || 90); }
+  ["auction", "buyback", "calendar", "liquidity", "liquidity2"].forEach((x) => $("tab-" + x).classList.toggle("hidden", x !== t));
+  if (t === "liquidity" || t === "liquidity2") { if (!S.fred && !S.fredBusy) loadFred(); if (!S.liq && !S.liqBusy) loadLiq(S.liqDays || 90); }
   Object.values(charts).forEach((c) => c.resize());
 }
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
@@ -935,9 +975,11 @@ async function loadLiq(days) {
   const by = {};
   ((j || {}).refRates || []).forEach((r) => { const d = (r.effectiveDate || "").slice(0, 10), v = num(r.percentRate); if (!d || v == null || !r.type) return;
     const o = by[d] || (by[d] = {}); o[r.type] = v; if (r.type === "SOFR") o.vol = num(r.volumeInBillions);
+    if (r.type === "SOFR") { o.p1 = num(r.percentPercentile1); o.p25 = num(r.percentPercentile25); o.p75 = num(r.percentPercentile75); o.p99 = num(r.percentPercentile99); }
     if (r.type === "EFFR") { o.lo = num(r.targetRateFrom); o.hi = num(r.targetRateTo); } });
   const dates = Object.keys(by).filter((d) => by[d].SOFR != null || by[d].EFFR != null).sort();
   S.liq = { dates, by, from, to };
+  renderLiq2();
   setStatus("liq-status", dates.length ? "" : "⚠ 뉴욕 연준 금리 데이터를 불러오지 못했습니다" + (err ? " (" + err.message + ")" : ""), !dates.length);
   renderLiq();
 }
@@ -979,8 +1021,10 @@ function renderLiq() {
     { type: "bar", label: "SRF 이용액 ($B)", data: B(L.srf), backgroundColor: alpha(c.gold, 0.8), borderRadius: 2, yAxisID: "y2", order: 0 } ] },
     options: { scales: { y: { beginAtZero: true, position: "left", title: { display: true, text: "RRP $B" } }, y2: { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "SRF $B" } } } } });
 }
-$("liq-quick").addEventListener("click", (e) => { const b = e.target.closest("[data-d]"); if (!b) return;
-  document.querySelectorAll("#liq-quick .chip").forEach((x) => x.classList.toggle("on", x === b)); S.liqDays = +b.dataset.d; loadLiq(S.liqDays); if (S.fred) renderFred(); });
+["liq-quick", "liq2-quick"].forEach((id) => $(id).addEventListener("click", (e) => { const b = e.target.closest("[data-d]"); if (!b) return;
+  S.liqDays = +b.dataset.d;
+  document.querySelectorAll("#liq-quick .chip, #liq2-quick .chip").forEach((x) => x.classList.toggle("on", +x.dataset.d === S.liqDays));
+  loadLiq(S.liqDays); if (S.fred) renderFred(); renderLiq2(); }));
 
 /* ───── 유동성: FRED 지표 (GitHub Actions가 하루 2번 data/fred.json 으로 저장해 둔 파일을 읽는다) ─────
    FRED API는 웹페이지에서 직접 호출할 수 없고 키도 노출되면 안 되므로, 키는 저장소 secret에만 둔다. */
@@ -1058,8 +1102,10 @@ async function saveEntry(sec, line) {
 function miRefresh() {
   const kind = $("mi-kind").value, tok = ghToken(), n = localLines().length;
   $("mi-country-l").classList.toggle("hidden", kind !== "cds_");
-  $("mi-val").placeholder = kind === "margin_debt" ? "예: 1,183,654" : "예: 52.3";
+  const l2 = L2M.find((x) => x.k === kind);
+  $("mi-val").placeholder = kind === "margin_debt" ? "예: 1,183,654" : l2 ? "단위: " + l2.unit : "예: 52.3";
   $("mi-hint").textContent = kind === "margin_debt" ? "FINRA 표의 \"Debit Balances in Customers' Securities Margin Accounts\" 숫자를 쉼표까지 그대로 적으면 됩니다(백만 달러). 날짜는 그 달의 아무 날이나 고르면 월 단위로 저장됩니다."
+    : l2 ? `${l2.label} · 단위 ${l2.unit}. 그래프는 "유동성 2" 탭에 나옵니다. 같은 날짜에 다시 저장하면 새 값으로 바뀝니다.`
     : "값은 bp 단위로 적습니다. 같은 날짜에 다시 저장하면 새 값으로 바뀝니다.";
   $("mi-countries").innerHTML = Object.keys(S.manual || {}).filter((k) => k.startsWith("cds_")).map((k) => `<option value="${esc(k.slice(4).replace(/_/g, " "))}">`).join("");
   $("mi-store").textContent = tok ? "저장 위치: GitHub 저장소 (모든 기기에서 보입니다)" : "저장 위치: 이 브라우저에만" + (n ? ` (${n}건)` : "") + " — 다른 기기나 다른 브라우저에서는 보이지 않습니다.";
@@ -1085,7 +1131,7 @@ $("mi-form").addEventListener("submit", async (e) => {
   try {
     const where = await saveEntry(sec, line);
     setStatus("mi-status", `저장했습니다: ${line}` + (where === "repo" ? " · 저장소에 기록됨" : " · 이 브라우저에 저장됨")); $("mi-val").value = "";
-    if (S.fred) renderFred();
+    if (S.fred) renderFred(); renderLiq2();
   } catch (err) {
     const why = err.status === 401 ? "토큰이 맞지 않거나 만료됐습니다. 연결을 해제하고 새 토큰으로 다시 연결해 주세요."
       : err.status === 403 || err.status === 404 ? "토큰에 이 저장소의 쓰기 권한이 없습니다. Contents 권한을 Read and write로 만든 토큰인지 확인해 주세요."
@@ -1103,7 +1149,7 @@ async function loadFred() {
   S.fredBusy = false;
   if (!best) { $("fred-wrap").classList.add("hidden");
     return setStatus("fred-status", "FRED 지표 파일(data/fred.json)이 아직 없습니다. 저장소에 자동 갱신 설정을 마치고 한 번 실행하면 여기에 그래프가 나타납니다.", true); }
-  S.fred = best; setStatus("fred-status", ""); renderFred(); if (S.liq) renderLiq();
+  S.fred = best; setStatus("fred-status", ""); renderFred(); if (S.liq) renderLiq(); renderLiq2();
 }
 function renderFred() {
   const F = S.fred.series, days = S.liqDays || 90, cut = iso(daysAgo(days));
@@ -1193,6 +1239,106 @@ function renderFred() {
     { y: { ticks: tP, title: { display: true, text: "하이일드" } }, y2: { ticks: tP, title: { display: true, text: "투자등급" } } });
   const miss = Object.keys(S.fred.errors || {});
   $("fred-src").textContent = `데이터: FRED (Federal Reserve Bank of St. Louis) · 파일 갱신 ${(S.fred.updated || "").replace("T", " ").slice(0, 16)} UTC · 하루 2회 자동 갱신` + (miss.length ? ` · 받지 못한 시리즈: ${miss.join(", ")}` : "");
+}
+
+/* ───── 유동성 2 ───── */
+// 자동으로 받을 수 없어 직접 입력하는 지표 (manual.txt 의 [키] 칸). g = 같은 그래프에 묶을 번호
+const L2M = [
+  { k: "borrow_est", g: 1, label: "분기 차입 전망 (순차입)", unit: "$B" },
+  { k: "ust_bidask", g: 10, label: "국채 매수·매도 호가 스프레드", unit: "bp" },
+  { k: "ust_basis", g: 11, label: "국채 현물·선물 베이시스", unit: "bp" },
+  { k: "pc_pik", g: 12, label: "사모신용 PIK 이자 비중", unit: "%" },
+  { k: "pc_nonaccrual", g: 13, label: "사모신용 Non-accrual 비중", unit: "%" },
+  { k: "pc_redeem_req", g: 14, label: "사모신용 환매 요청액", unit: "$B" },
+  { k: "pc_redeem_paid", g: 14, label: "사모신용 환매 실제 지급액", unit: "$B" },
+  { k: "pc_drawn", g: 15, label: "사모신용 은행 한도 인출액", unit: "$B" },
+  { k: "pc_undrawn", g: 15, label: "사모신용 은행 미사용 한도", unit: "$B" },
+  { k: "fx_implied", g: 17, label: "FX스와프 내재 달러 조달금리", unit: "%" },
+  { k: "xccy_basis", g: 17, label: "크로스커런시 베이시스", unit: "bp" },
+  { k: "gov_mmf", g: 18, label: "정부형 MMF 잔고", unit: "$B" },
+];
+$("mi-l2").innerHTML = L2M.map((x) => `<option value="${x.k}">${x.g}. ${esc(x.label)} (${esc(x.unit)})</option>`).join("");
+const L2TITLE = { 1: "1. 재무부 분기 차입 전망", 10: "10. 국채 매수·매도 호가 스프레드", 11: "11. 국채 현물·선물 베이시스", 12: "12. 사모신용 PIK 이자 비중", 13: "13. 사모신용 Non-accrual 비중", 14: "14. 사모신용 환매 요청액과 실제 지급액", 15: "15. 사모신용 은행 한도 인출액과 미사용 한도", 17: "17. FX스와프 내재 달러 금리와 크로스커런시 베이시스", 18: "18. 정부형 MMF 자금" };
+// 18개 지표 점검표: [번호, 이름, 한 줄 뜻, 상태(ok=다른 탭에 있음 / new=이 탭 / man=직접 입력), 위치 설명, 이동할 탭, 참고 링크]
+const QRA_URL = "https://home.treasury.gov/policy-issues/financing-the-government/quarterly-refunding/most-recent-quarterly-refunding-documents";
+const L2LIST = [
+  [1, "재무부 분기 차입 전망", "재무부가 이번·다음 분기에 시장에서 얼마를 빌릴지 내놓는 추정치. QRA 이틀 전 발표", "man", "직접 입력", "", QRA_URL],
+  [2, "분기 국채 발행계획 (QRA)", "만기별 발행 규모와 바이백 일정. 장기물 공급이 늘면 금리 상승 압력", "ok", "결제 달력 ★ QRA", "calendar", QRA_URL],
+  [3, "국채 입찰 결과와 결제 일정", "수요가 약하면 Tail 확대·딜러 비중 증가. 결제일에 시중 현금이 빠져나감", "ok", "입찰 분석 · 결제 달력", "auction", ""],
+  [4, "재무부 일반계정 잔액 (TGA)", "재무부의 연준 예금. 늘어나면 그만큼 시중 준비금이 줄어듦", "ok", "결제 달력 · 유동성", "liquidity", ""],
+  [5, "은행 준비금 잔액", "은행권이 연준에 가진 현금. 줄수록 자금시장이 빠듯해짐", "ok", "유동성", "liquidity", ""],
+  [6, "익일물 역레포 잔액 (ON RRP)", "MMF 등이 연준에 맡긴 여유 현금. 바닥나면 완충이 사라짐", "ok", "유동성", "liquidity", ""],
+  [7, "SOFR − IORB 스프레드", "리포금리가 준비금 이자보다 높아지면 준비금이 빠듯하다는 신호", "ok", "유동성", "liquidity", ""],
+  [8, "SOFR 75백분위 − 25백분위", "리포 금리의 흩어진 정도. 벌어지면 일부가 비싸게 빌리는 중", "new", "이 탭 위쪽 그래프", "", "https://www.newyorkfed.org/markets/reference-rates/sofr"],
+  [9, "연준 상설 레포 이용액 (SRF)", "딜러가 시장 대신 연준 창구에서 빌린 금액. 늘면 시장 금리가 비쌌다는 뜻", "ok", "유동성", "liquidity", ""],
+  [10, "국채 매수·매도 호가 스프레드", "국채 시장의 거래 비용. 벌어지면 유동성이 나빠진 것", "man", "직접 입력", "", ""],
+  [11, "국채 현물·선물 베이시스", "헤지펀드 베이시스 거래의 수익원. 급변하면 강제 청산 위험", "man", "직접 입력", "", "https://www.financialresearch.gov/hedge-fund-monitor/"],
+  [12, "사모신용 현금이자 대 PIK 비중", "이자를 현금 대신 빚으로 얹어 내는 비율. 오르면 차주의 현금 사정 악화", "man", "직접 입력", "", ""],
+  [13, "사모신용 Non-accrual 비중", "이자 수익 인식을 멈춘 대출의 비율. 사실상 부실 비율", "man", "직접 입력", "", ""],
+  [14, "사모신용 환매 요청액과 지급액", "투자자가 돌려달라는 돈과 실제 받은 돈. 차이가 벌어지면 환매 제한", "man", "직접 입력", "", ""],
+  [15, "사모신용 은행 한도 인출·미사용", "펀드가 은행 대출 한도를 얼마나 끌어 썼는지. 은행으로 위험이 옮겨가는 경로", "man", "직접 입력", "", ""],
+  [16, "은행 예금 유출입과 도매자금 조달비용", "예금이 빠지면 은행이 비싼 도매자금으로 메움", "new", "이 탭 위쪽 그래프", "", "https://www.federalreserve.gov/releases/h8/current/"],
+  [17, "FX스와프 내재 달러 금리와 크로스커런시 베이시스", "해외에서 달러를 구하는 비용. 마이너스가 깊어지면 달러 부족", "man", "직접 입력", "", ""],
+  [18, "정부형 MMF 자금 유출입", "국채·레포를 사는 MMF의 자금. 단기 국채 수요의 핵심", "man", "직접 입력 (전체 MMF 분기 자료는 유동성 탭)", "", "https://www.financialresearch.gov/money-market-funds/"],
+];
+$("l2-list").addEventListener("click", (e) => { const b = e.target.closest("[data-go]"); if (b) { switchTab(b.dataset.go); window.scrollTo(0, 0); } });
+
+function renderLiq2() {
+  if (!$("tab-liquidity2")) return;
+  const F = (S.fred || {}).series || {}, M = S.manual || {}, days = S.liqDays || 90, cut = iso(daysAgo(days));
+  const c = { accent: css("--accent"), green: css("--green"), gold: css("--gold"), red: css("--red"), violet: css("--violet"), pink: css("--pink") };
+  const obs = (id, from) => ((F[id] || {}).obs || []).filter((o) => o[0] >= (from || cut));
+  const diff = (a, b, k) => { const mb = new Map(obs(b)); return obs(a).filter((o) => mb.has(o[0])).map((o) => [o[0], +((o[1] - mb.get(o[0])) * k).toFixed(2)]); };
+  const draw = (id, sets, opt) => {
+    const dates = [...new Set(sets.flatMap((x) => x.data.map((o) => o[0])))].sort();
+    const ds = sets.map((x) => { const m = new Map(x.data), arr = dates.map((d) => (m.has(d) ? m.get(d) : null));
+      return x.bar ? { type: "bar", label: x.label, data: arr, backgroundColor: x.sign ? arr.map((v) => (v < 0 ? alpha(c.red, 0.75) : alpha(c.green, 0.7))) : alpha(x.color, 0.7), borderRadius: 2, yAxisID: x.axis || "y", order: 1 }
+        : line(x.label, arr, x.color, Object.assign({ pointRadius: dates.length > 45 ? 0 : 3, tension: 0, yAxisID: x.axis || "y", order: 0 }, x.extra)); });
+    const scales = { y: Object.assign({ position: "left" }, opt.y) }; if (opt.y2) scales.y2 = Object.assign({ position: "right", grid: { drawOnChartArea: false } }, opt.y2);
+    mk(id, { data: { labels: dlabels(dates), datasets: ds }, options: Object.assign({ scales }, sets.length < 2 ? { plugins: { legend: { display: false } } } : {}) });
+  };
+  const tB = { callback: (v) => "$" + (Math.abs(v) >= 1000 ? (v / 1000).toFixed(2) + "T" : +v.toFixed(1) + "B") };
+  const none = (id, msg) => { $(id).textContent = "—"; $(id + "-s").textContent = msg; };
+
+  // 8. SOFR 백분위 스프레드: 뉴욕 연준 자료 우선, 없으면 FRED
+  let iq = [], wide = [];
+  if (S.liq && S.liq.dates.some((d) => S.liq.by[d].p75 != null)) {
+    S.liq.dates.forEach((d) => { const o = S.liq.by[d]; if (o.p75 != null && o.p25 != null) iq.push([d, +((o.p75 - o.p25) * 100).toFixed(1)]); if (o.p99 != null && o.p1 != null) wide.push([d, +((o.p99 - o.p1) * 100).toFixed(1)]); });
+  } else { iq = diff("SOFR75", "SOFR25", 100); wide = diff("SOFR99", "SOFR1", 100); }
+  if (iq.length) { const sets = [{ label: "75% − 25% (bp)", data: iq, bar: true, color: c.accent }]; if (wide.length) sets.push({ label: "99% − 1% (bp)", data: wide, color: c.gold, axis: "y2" });
+    draw("c-l2-pct", sets, { y: { beginAtZero: true, ticks: { callback: bp }, title: { display: true, text: "75% − 25%" } }, y2: wide.length ? { beginAtZero: true, ticks: { callback: bp }, title: { display: true, text: "99% − 1%" } } : undefined });
+    const l = iq[iq.length - 1], avg = iq.reduce((a, o) => a + o[1], 0) / iq.length; $("z-pct").textContent = l[1].toFixed(0) + "bp"; $("z-pct-s").textContent = `${l[0]} · 기간 평균 ${avg.toFixed(1)}bp`; $("z-pct").style.color = l[1] > avg * 1.5 ? "var(--red)" : "var(--accent)";
+  } else none("z-pct", "데이터 없음");
+
+  // 16. 은행 예금 주간 변화, 도매자금
+  const dep = ((F.DPSACBW027SBOG || {}).obs || []), chg = dep.slice(1).map((o, i) => [o[0], +(o[1] - dep[i][1]).toFixed(1)]).filter((o) => o[0] >= cut);
+  if (chg.length) { draw("c-l2-dep", [{ label: "주간 변화 ($B)", data: chg, bar: true, sign: true }], { y: { ticks: { callback: (v) => (v > 0 ? "+" : "") + v + "B" } } });
+    const l = chg[chg.length - 1], lv = dep[dep.length - 1]; $("z-dep").textContent = (l[1] >= 0 ? "+" : "−") + usd(Math.abs(l[1]) * 1e9); $("z-dep").style.color = l[1] < 0 ? "var(--red)" : "var(--green)"; $("z-dep-s").textContent = `${l[0]} 주간 · 잔액 ${usd(lv[1] * 1e9)}`;
+  } else none("z-dep", "자동 갱신을 한 번 더 실행하면 표시됩니다");
+  const ltd = obs("LTDACBW027SBOG"); if (ltd.length) draw("c-l2-ltd", [{ label: "거액 정기예금", data: ltd, color: c.violet, extra: { fill: true } }], { y: { ticks: tB } });
+  const fund = diff("DCPF3M", "DTB3", 100);
+  if (fund.length) { draw("c-l2-fund", [{ label: "CP − 국채 (bp)", data: fund, color: c.gold, extra: { fill: true } }], { y: { ticks: { callback: bp } } });
+    const l = fund[fund.length - 1]; $("z-cp").textContent = l[1].toFixed(0) + "bp"; $("z-cp-s").textContent = l[0];
+  } else none("z-cp", "자동 갱신을 한 번 더 실행하면 표시됩니다");
+  const need = ["DPSACBW027SBOG", "LTDACBW027SBOG", "DCPF3M", "DTB3"].filter((id) => !F[id]);
+  setStatus("l2-status", !S.fred ? "FRED 지표 파일을 아직 불러오지 못했습니다." : need.length ? `일부 그래프는 자동 갱신 설정 파일을 새것으로 바꾸고 한 번 실행해야 나옵니다 (없는 항목: ${need.join(", ")})` : "", !S.fred || need.length > 0);
+  $("l2-src").textContent = "데이터: New York Fed (SOFR 백분위) · Federal Reserve H.8 · FRED" + (S.fred ? ` · 파일 갱신 ${(S.fred.updated || "").replace("T", " ").slice(0, 16)} UTC` : "");
+
+  // 점검표
+  const cnt = (g) => L2M.filter((x) => x.g === g).reduce((n, x) => n + (M[x.k] || []).length, 0);
+  $("l2-list").innerHTML = `<tr><th>#</th><th>지표</th><th>무엇을 보나</th><th>어디서 보나</th></tr>` + L2LIST.map(([n, name, why, st, where, go, url]) => {
+    const k = st === "man" && cnt(n) ? "new" : st, txt = st === "man" ? (cnt(n) ? `입력됨 ${cnt(n)}건 · 이 탭 아래` : "직접 입력 필요") : where;
+    return `<tr><td class="mono">${n}</td><td>${esc(name)}</td><td>${esc(why)}</td><td><span class="tag ${k}">${esc(txt)}</span>${go ? ` <button class="lnk" data-go="${go}">이동</button>` : ""}${url ? ` <a href="${url}" target="_blank" rel="noopener">원자료 ↗</a>` : ""}</td></tr>`; }).join("");
+
+  // 직접 입력 그래프: 값이 있는 묶음만 만든다
+  Object.keys(charts).filter((id) => id.startsWith("c-m-")).forEach((id) => { charts[id].destroy(); delete charts[id]; });
+  const groups = [...new Set(L2M.map((x) => x.g))].filter((g) => cnt(g) > 0);
+  $("l2-manual").innerHTML = groups.map((g) => { const items = L2M.filter((x) => x.g === g && (M[x.k] || []).length);
+    return `<div class="panel"><h3>${esc(L2TITLE[g])}</h3><div class="pd">${items.map((x) => `${esc(x.label)} (${esc(x.unit)}) · 최신 ${M[x.k][M[x.k].length - 1][1]} · ${M[x.k][M[x.k].length - 1][0]}`).join(" / ")}</div><div class="cw"><canvas id="c-m-${g}"></canvas></div></div>`; }).join("");
+  $("l2-manual-empty").classList.toggle("hidden", groups.length > 0);
+  groups.forEach((g) => { const items = L2M.filter((x) => x.g === g && (M[x.k] || []).length), two = items.length > 1 && items[0].unit !== items[1].unit;
+    draw("c-m-" + g, items.map((x, i) => ({ label: `${x.label} (${x.unit})`, data: M[x.k], color: [c.accent, c.gold][i], axis: two && i ? "y2" : "y", extra: { pointRadius: 3 } })),
+      { y: { title: { display: true, text: items[0].unit } }, y2: two ? { title: { display: true, text: items[1].unit } } : undefined }); });
 }
 
 /* ───── 초기화 ───── */
